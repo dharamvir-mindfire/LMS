@@ -105,16 +105,25 @@ export async function submitQuiz(req: Request, res: Response): Promise<void> {
 
   const { answers } = req.body as { answers: Array<{ question: string; selectedOptionIndex: number }> };
   const questions = await Question.find({ _id: { $in: answers.map((a) => a.question) } });
-  const correctByQuestionId = new Map(questions.map((q) => [String(q._id), q.correctOptionIndex]));
+  const questionById = new Map(questions.map((q) => [String(q._id), q]));
 
   let correctCount = 0;
-  for (const answer of answers) {
-    if (correctByQuestionId.get(String(answer.question)) === answer.selectedOptionIndex) {
-      correctCount += 1;
-    }
-  }
+  const results = answers.map((answer) => {
+    const question = questionById.get(String(answer.question));
+    const isCorrect = !!question && question.correctOptionIndex === answer.selectedOptionIndex;
+    if (isCorrect) correctCount += 1;
+    return {
+      question: answer.question,
+      text: question?.text ?? "",
+      options: question?.options ?? [],
+      correctOptionIndex: question?.correctOptionIndex ?? -1,
+      selectedOptionIndex: answer.selectedOptionIndex,
+      explanation: question?.explanation ?? "",
+      isCorrect,
+    };
+  });
 
   await User.findByIdAndUpdate(req.user!.id, { $inc: { questionsAnswered: answers.length } });
 
-  res.json({ score: correctCount, total: answers.length, correctCount });
+  res.json({ score: correctCount, total: answers.length, correctCount, results });
 }

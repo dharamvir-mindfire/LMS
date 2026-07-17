@@ -2,11 +2,22 @@ import { Request, Response } from "express";
 import bcrypt from "bcryptjs";
 import crypto from "crypto";
 import { validationResult } from "express-validator";
-import User from "../models/User";
+import User, { IUser } from "../models/User";
 import { generateToken } from "../utils/GenerateToken";
 
 const OTP_EXPIRY_MINUTES = 10;
 const OTP_MAX_ATTEMPTS = 5;
+
+function serializeUser(user: IUser) {
+  return {
+    _id: user._id,
+    name: user.name,
+    email: user.email,
+    role: user.role,
+    questionsAnswered: user.questionsAnswered,
+    hasPassword: user.hasPassword,
+  };
+}
 
 export async function register(req: Request, res: Response): Promise<void> {
   const errors = validationResult(req);
@@ -29,7 +40,7 @@ export async function register(req: Request, res: Response): Promise<void> {
   const token = generateToken(user);
   res.status(201).json({
     token,
-    user: { _id: user._id, name: user.name, email: user.email, role: user.role },
+    user: serializeUser(user),
   });
 }
 
@@ -57,7 +68,7 @@ export async function login(req: Request, res: Response): Promise<void> {
   const token = generateToken(user);
   res.json({
     token,
-    user: { _id: user._id, name: user.name, email: user.email, role: user.role },
+    user: serializeUser(user),
   });
 }
 
@@ -87,6 +98,7 @@ export async function sendOtp(req: Request, res: Response): Promise<void> {
       name: normalizedEmail.split("@")[0],
       email: normalizedEmail,
       password: randomPassword,
+      hasPassword: false,
       role: "user",
     });
   }
@@ -137,6 +149,57 @@ export async function verifyOtp(req: Request, res: Response): Promise<void> {
   const token = generateToken(user);
   res.json({
     token,
-    user: { _id: user._id, name: user.name, email: user.email, role: user.role },
+    user: serializeUser(user),
   });
+}
+
+export async function updateProfile(req: Request, res: Response): Promise<void> {
+  const errors = validationResult(req);
+  if (!errors.isEmpty()) {
+    res.status(400).json({ message: errors.array()[0].msg });
+    return;
+  }
+
+  const { name } = req.body as { name: string };
+  const user = await User.findById(req.user!.id);
+  if (!user) {
+    res.status(404).json({ message: "User not found" });
+    return;
+  }
+
+  user.name = name;
+  await user.save();
+  res.json({ user: serializeUser(user) });
+}
+
+export async function updatePassword(req: Request, res: Response): Promise<void> {
+  const errors = validationResult(req);
+  if (!errors.isEmpty()) {
+    res.status(400).json({ message: errors.array()[0].msg });
+    return;
+  }
+
+  const { currentPassword, newPassword } = req.body as { currentPassword?: string; newPassword: string };
+  const user = await User.findById(req.user!.id);
+  if (!user) {
+    res.status(404).json({ message: "User not found" });
+    return;
+  }
+
+  if (user.hasPassword) {
+    if (!currentPassword) {
+      res.status(400).json({ message: "Current password is required" });
+      return;
+    }
+    const match = await bcrypt.compare(currentPassword, user.password);
+    if (!match) {
+      res.status(401).json({ message: "Current password is incorrect" });
+      return;
+    }
+  }
+
+  user.password = await bcrypt.hash(newPassword, 10);
+  user.hasPassword = true;
+  await user.save();
+  res.json({ user: serializeUser(user) });
 }

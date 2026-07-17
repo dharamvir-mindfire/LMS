@@ -5,7 +5,7 @@ import type {RootStackParamList} from '../navigation/RootNavigator';
 import client, {extractErrorMessage} from '../api/client';
 import QuestionCard from '../components/QuestionCard';
 import colors from '../theme/colors';
-import type {Question} from '../types';
+import type {Question, QuizResultQuestion} from '../types';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'QuizPlay'>;
 
@@ -13,6 +13,7 @@ interface QuizResult {
   score: number;
   total: number;
   correctCount: number;
+  results: QuizResultQuestion[];
 }
 
 export default function QuizPlay({route}: Props) {
@@ -65,12 +66,40 @@ export default function QuizPlay({route}: Props) {
 
   if (result) {
     return (
-      <View style={styles.container}>
+      <ScrollView style={styles.container} contentContainerStyle={styles.content}>
         <Text style={styles.title}>{quizTitle}</Text>
         <Text style={styles.resultText}>
           Score: {result.score} / {result.total}
         </Text>
-      </View>
+        {result.results.map((item, index) => (
+          <View key={item.question} style={styles.resultCard}>
+            <Text style={styles.resultQuestionText}>
+              {index + 1}. {item.text}
+            </Text>
+            {item.options.map((option, optionIndex) => {
+              const isCorrectOption = optionIndex === item.correctOptionIndex;
+              const isSelectedOption = optionIndex === item.selectedOptionIndex;
+              return (
+                <View
+                  key={optionIndex}
+                  style={[
+                    styles.resultOption,
+                    isCorrectOption && styles.resultOptionCorrect,
+                    isSelectedOption && !isCorrectOption && styles.resultOptionIncorrect,
+                  ]}>
+                  <Text style={styles.resultOptionText}>{option}</Text>
+                  {isSelectedOption ? <Text style={styles.resultOptionTag}>Your answer</Text> : null}
+                  {isCorrectOption ? <Text style={styles.resultOptionTag}>Correct answer</Text> : null}
+                </View>
+              );
+            })}
+            <Text style={item.isCorrect ? styles.correctLabel : styles.incorrectLabel}>
+              {item.isCorrect ? 'Correct' : 'Incorrect'}
+            </Text>
+            {item.explanation ? <Text style={styles.explanation}>{item.explanation}</Text> : null}
+          </View>
+        ))}
+      </ScrollView>
     );
   }
 
@@ -99,7 +128,7 @@ const styles = StyleSheet.create({
   title: {color: colors.text, fontSize: 20, fontWeight: '700', marginBottom: 8},
   muted: {color: colors.textMuted},
   error: {color: colors.danger},
-  resultText: {color: colors.text, fontSize: 18},
+  resultText: {color: colors.text, fontSize: 18, marginBottom: 8},
   submit: {
     color: '#fff',
     backgroundColor: colors.purple,
@@ -108,5 +137,57 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     fontWeight: '600',
     marginVertical: 16,
+  },
+  resultCard: {
+    backgroundColor: colors.surface,
+    borderRadius: 12,
+    padding: 16,
+    gap: 8,
+  },
+  resultQuestionText: {
+    color: colors.text,
+    fontSize: 16,
+    fontWeight: '600',
+    marginBottom: 4,
+  },
+  resultOption: {
+    borderWidth: 1,
+    borderColor: colors.border,
+    borderRadius: 8,
+    padding: 12,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    gap: 8,
+  },
+  resultOptionCorrect: {
+    borderColor: colors.success,
+    backgroundColor: '#1c3a2a',
+  },
+  resultOptionIncorrect: {
+    borderColor: colors.danger,
+    backgroundColor: '#3a1c1c',
+  },
+  resultOptionText: {
+    color: colors.text,
+    flex: 1,
+  },
+  resultOptionTag: {
+    color: colors.textMuted,
+    fontSize: 12,
+    fontWeight: '600',
+  },
+  correctLabel: {
+    color: colors.success,
+    fontWeight: '700',
+  },
+  incorrectLabel: {
+    color: colors.danger,
+    fontWeight: '700',
+  },
+  explanation: {
+    color: colors.textMuted,
+    fontSize: 13,
+    lineHeight: 18,
   },
 });

@@ -6,6 +6,14 @@ export interface User {
   email: string;
   role: UserRole;
   questionsAnswered: number;
+  hasPassword: boolean;
+}
+
+export interface HomeStats {
+  courses: number;
+  subjects: number;
+  quizzes: number;
+  questionsAnswered: number;
 }
 
 export interface Course {
@@ -49,4 +57,15 @@ export interface QuizSession {
   title: string;
   subject: string;
   questions: Question[];
+}
+
+// One entry in the breakdown returned by POST /quizzes/:id/submit
+export interface QuizResultQuestion {
+  question: string;
+  text: string;
+  options: string[];
+  correctOptionIndex: number;
+  selectedOptionIndex: number;
+  explanation: string;
+  isCorrect: boolean;
 }

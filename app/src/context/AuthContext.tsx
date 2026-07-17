@@ -10,6 +10,8 @@ interface AuthContextValue {
   login: (email: string, password: string) => Promise<User>;
   sendOtp: (email: string) => Promise<void>;
   loginWithOtp: (email: string, otp: string) => Promise<User>;
+  updateProfile: (name: string) => Promise<User>;
+  updatePassword: (newPassword: string, currentPassword?: string) => Promise<User>;
   logout: () => Promise<void>;
 }
 
@@ -54,13 +56,25 @@ export function AuthProvider({children}: {children: ReactNode}) {
     return res.data.user as User;
   }
 
+  async function updateProfile(name: string) {
+    const res = await client.patch('/auth/profile', {name});
+    setUser(res.data.user);
+    return res.data.user as User;
+  }
+
+  async function updatePassword(newPassword: string, currentPassword?: string) {
+    const res = await client.put('/auth/password', {newPassword, currentPassword});
+    setUser(res.data.user);
+    return res.data.user as User;
+  }
+
   async function logout() {
     await AsyncStorage.removeItem(TOKEN_KEY);
     setUser(null);
   }
 
   const value = useMemo(
-    () => ({user, loading, login, sendOtp, loginWithOtp, logout}),
+    () => ({user, loading, login, sendOtp, loginWithOtp, updateProfile, updatePassword, logout}),
     [user, loading],
   );
 

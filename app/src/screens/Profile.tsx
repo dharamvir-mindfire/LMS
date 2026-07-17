@@ -7,7 +7,7 @@ import colors from '../theme/colors';
 
 type Props = NativeStackScreenProps<ProfileStackParamList, 'Profile'>;
 
-export default function Profile({}: Props) {
+export default function Profile({navigation}: Props) {
   const {user, logout} = useAuth();
 
   return (
@@ -15,6 +15,13 @@ export default function Profile({}: Props) {
       <Text style={styles.title}>{user?.name}</Text>
       <Text style={styles.muted}>{user?.email}</Text>
       <Text style={styles.muted}>Questions answered: {user?.questionsAnswered ?? 0}</Text>
+
+      <Pressable style={styles.menuItem} onPress={() => navigation.navigate('Settings')}>
+        <Text style={styles.menuItemText}>Settings</Text>
+      </Pressable>
+      <Pressable style={styles.menuItem} onPress={() => navigation.navigate('ChangePassword')}>
+        <Text style={styles.menuItemText}>{user?.hasPassword ? 'Change Password' : 'Set Password'}</Text>
+      </Pressable>
 
       <Text style={styles.sectionTitle}>Achievements</Text>
       <FlatList
@@ -43,6 +50,14 @@ const styles = StyleSheet.create({
   title: {color: colors.text, fontSize: 22, fontWeight: '700'},
   muted: {color: colors.textMuted},
   sectionTitle: {color: colors.text, fontSize: 16, fontWeight: '600', marginTop: 16, marginBottom: 8},
+  menuItem: {
+    backgroundColor: colors.surface,
+    borderRadius: 10,
+    padding: 14,
+    borderWidth: 1,
+    borderColor: colors.border,
+  },
+  menuItemText: {color: colors.text, fontWeight: '600'},
   achievement: {
     backgroundColor: colors.surface,
     borderRadius: 10,
