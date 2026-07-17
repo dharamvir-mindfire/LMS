@@ -54,6 +54,11 @@ export function BulkUploadQuestionsModal({ subjects, onClose, onUploaded }: Bulk
         Upload a CSV with columns: subject, text, optionA, optionB, optionC, optionD,
         correctOptionIndex, difficulty, explanation.
       </p>
+      <p style={{ fontSize: '0.85rem' }}>
+        <a href="/sample-questions.csv" download>
+          Download sample CSV
+        </a>
+      </p>
       <div className="form-group">
         <input
           className="input"

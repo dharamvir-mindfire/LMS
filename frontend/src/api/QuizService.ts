@@ -6,13 +6,13 @@ export async function listQuizzes(): Promise<Quiz[]> {
   return res.data.quizzes;
 }
 
-export async function createQuiz(title: string, subject: string, questions: string[]): Promise<Quiz> {
-  const res = await client.post('/quizzes', { title, subject, questions });
+export async function createQuiz(title: string, subjects: string[], questions: string[]): Promise<Quiz> {
+  const res = await client.post('/quizzes', { title, subjects, questions });
   return res.data.quiz;
 }
 
-export async function updateQuiz(id: string, title: string, subject: string, questions: string[]): Promise<Quiz> {
-  const res = await client.put(`/quizzes/${id}`, { title, subject, questions });
+export async function updateQuiz(id: string, title: string, subjects: string[], questions: string[]): Promise<Quiz> {
+  const res = await client.put(`/quizzes/${id}`, { title, subjects, questions });
   return res.data.quiz;
 }
 

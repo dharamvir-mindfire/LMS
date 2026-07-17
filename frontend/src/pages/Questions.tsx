@@ -9,6 +9,8 @@ import { Modal } from '../components/Modal';
 import { BulkUploadQuestionsModal } from '../components/BulkUploadQuestionsModal';
 
 const DIFFICULTIES: Difficulty[] = ['easy', 'medium', 'hard'];
+const MIN_OPTIONS = 2;
+const MAX_OPTIONS = 6;
 
 export function Questions() {
   const [questions, setQuestions] = useState<Question[]>([]);
@@ -54,11 +56,27 @@ export function Questions() {
     setEditing(question);
     setSubjectId(typeof question.subject === 'string' ? question.subject : question.subject._id);
     setText(question.text);
-    setOptions([...question.options, '', '', '', ''].slice(0, 4));
+    setOptions(question.options);
     setCorrectOptionIndex(question.correctOptionIndex);
     setDifficulty(question.difficulty);
     setExplanation(question.explanation ?? '');
     setShowForm(true);
+  }
+
+  function addOption() {
+    setOptions((prev) => (prev.length >= MAX_OPTIONS ? prev : [...prev, '']));
+  }
+
+  function removeOption(index: number) {
+    setOptions((prev) => {
+      if (prev.length <= MIN_OPTIONS) return prev;
+      return prev.filter((_, i) => i !== index);
+    });
+    setCorrectOptionIndex((prev) => {
+      if (index === prev) return 0;
+      if (index < prev) return prev - 1;
+      return prev;
+    });
   }
 
   async function handleSubmit(e: FormEvent) {
@@ -200,18 +218,34 @@ export function Questions() {
                 <label className="label" htmlFor={`question-option-${index}`}>
                   Option {index + 1}
                 </label>
-                <input
-                  id={`question-option-${index}`}
-                  className="input"
-                  value={option}
-                  onChange={(e) => {
-                    const next = [...options];
-                    next[index] = e.target.value;
-                    setOptions(next);
-                  }}
-                />
+                <div style={{ display: 'flex', gap: '0.5rem' }}>
+                  <input
+                    id={`question-option-${index}`}
+                    className="input"
+                    style={{ flex: 1 }}
+                    value={option}
+                    onChange={(e) => {
+                      const next = [...options];
+                      next[index] = e.target.value;
+                      setOptions(next);
+                    }}
+                  />
+                  <button
+                    type="button"
+                    className="btn btn-sm btn-danger"
+                    onClick={() => removeOption(index)}
+                    disabled={options.length <= MIN_OPTIONS}
+                  >
+                    Remove
+                  </button>
+                </div>
               </div>
             ))}
+            <div className="form-group">
+              <button type="button" className="btn btn-sm" onClick={addOption} disabled={options.length >= MAX_OPTIONS}>
+                + Add option
+              </button>
+            </div>
             <div className="form-group">
               <label className="label" htmlFor="question-correct">
                 Correct option

@@ -16,7 +16,8 @@ const router = Router();
 
 const quizValidators = [
   body("title").trim().notEmpty().withMessage("title is required"),
-  body("subject").isMongoId().withMessage("a valid subject is required"),
+  body("subjects").isArray({ min: 1 }).withMessage("at least 1 subject is required"),
+  body("subjects.*").isMongoId().withMessage("a valid subject is required"),
   body("questions").isArray({ min: 1 }).withMessage("at least 1 question is required"),
 ];
 

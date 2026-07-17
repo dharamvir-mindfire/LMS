@@ -75,7 +75,7 @@ async function seed(): Promise<void> {
     if (existing) continue;
     await Quiz.create({
       title: quiz.title,
-      subject: quiz.subject._id,
+      subjects: [quiz.subject._id],
       questions: quiz.questions.map((q) => q._id),
       createdBy: admin._id,
     });

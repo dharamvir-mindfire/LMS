@@ -43,19 +43,19 @@ export interface Question {
   difficulty: Difficulty;
 }
 
-// Shape returned by GET /quizzes (subject populated, questions are just ids)
+// Shape returned by GET /quizzes (subjects populated, questions are just ids)
 export interface QuizListItem {
   _id: string;
   title: string;
-  subject: SubjectSummary;
+  subjects: SubjectSummary[];
   questions: string[];
 }
 
-// Shape returned by POST /quizzes/:id/start (questions populated, subject is just an id)
+// Shape returned by POST /quizzes/:id/start (questions populated, subjects are just ids)
 export interface QuizSession {
   _id: string;
   title: string;
-  subject: string;
+  subjects: string[];
   questions: Question[];
 }
 

@@ -37,7 +37,7 @@ export interface Question {
 export interface Quiz {
   _id: string;
   title: string;
-  subject: { _id: string; name: string; slug: string } | string;
+  subjects: Array<{ _id: string; name: string; slug: string } | string>;
   questions: string[];
   createdBy?: string;
 }

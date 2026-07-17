@@ -1,0 +1,5 @@
+subject,text,optionA,optionB,optionC,optionD,correctOptionIndex,difficulty,explanation
+JavaScript,Which keyword declares a block-scoped variable?,var,let,function,class,1,easy,"'let' is block-scoped; 'var' is function-scoped."
+JavaScript,What does '===' check that '==' does not?,Value only,Type and value,Nothing,Reference only,1,medium,"'===' compares both type and value without coercion."
+General Knowledge,What is the capital of France?,Berlin,Madrid,Paris,Rome,2,easy,
+General Knowledge,How many continents are there on Earth?,5,6,7,8,2,easy,

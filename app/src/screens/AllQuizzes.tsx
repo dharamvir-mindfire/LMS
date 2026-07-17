@@ -38,7 +38,7 @@ export default function AllQuizzes({}: Props) {
           renderItem={({item}) => (
             <Pressable style={styles.card} onPress={() => openQuiz(item)}>
               <Text style={styles.cardTitle}>{item.title}</Text>
-              <Text style={styles.muted}>{item.subject.name}</Text>
+              <Text style={styles.muted}>{item.subjects.map(s => s.name).join(', ')}</Text>
             </Pressable>
           )}
           ListEmptyComponent={<Text style={styles.muted}>No quizzes yet.</Text>}

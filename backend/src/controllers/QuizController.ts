@@ -6,14 +6,14 @@ import User from "../models/User";
 
 export async function listQuizzes(req: Request, res: Response): Promise<void> {
   const filter: Record<string, unknown> = {};
-  if (req.query.subject) filter.subject = req.query.subject;
+  if (req.query.subject) filter.subjects = req.query.subject;
 
-  const quizzes = await Quiz.find(filter).populate("subject", "name slug").sort({ createdAt: -1 });
+  const quizzes = await Quiz.find(filter).populate("subjects", "name slug").sort({ createdAt: -1 });
   res.json({ quizzes });
 }
 
 export async function getQuiz(req: Request, res: Response): Promise<void> {
-  const quiz = await Quiz.findById(req.params.id).populate("subject", "name slug").populate("questions");
+  const quiz = await Quiz.findById(req.params.id).populate("subjects", "name slug").populate("questions");
   if (!quiz) {
     res.status(404).json({ message: "Quiz not found" });
     return;
@@ -28,8 +28,8 @@ export async function createQuiz(req: Request, res: Response): Promise<void> {
     return;
   }
 
-  const { title, subject, questions } = req.body as { title: string; subject: string; questions: string[] };
-  const quiz = await Quiz.create({ title, subject, questions, createdBy: req.user!.id });
+  const { title, subjects, questions } = req.body as { title: string; subjects: string[]; questions: string[] };
+  const quiz = await Quiz.create({ title, subjects, questions, createdBy: req.user!.id });
   res.status(201).json({ quiz });
 }
 
@@ -46,13 +46,13 @@ export async function updateQuiz(req: Request, res: Response): Promise<void> {
     return;
   }
 
-  const { title, subject, questions } = req.body as {
+  const { title, subjects, questions } = req.body as {
     title?: string;
-    subject?: string;
+    subjects?: string[];
     questions?: string[];
   };
   if (title !== undefined) quiz.title = title;
-  if (subject !== undefined) quiz.subject = subject as unknown as typeof quiz.subject;
+  if (subjects !== undefined) quiz.subjects = subjects as unknown as typeof quiz.subjects;
   if (questions !== undefined) quiz.questions = questions as unknown as typeof quiz.questions;
   await quiz.save();
   res.json({ quiz });
@@ -79,7 +79,7 @@ export async function startQuiz(req: Request, res: Response): Promise<void> {
     quiz: {
       _id: quiz._id,
       title: quiz.title,
-      subject: quiz.subject,
+      subjects: quiz.subjects,
       questions: quiz.questions.map((q) => ({
         _id: q._id,
         text: q.text,
