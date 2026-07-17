@@ -1,53 +1,35 @@
-import { Routes, Route } from 'react-router-dom';
+import { Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider } from './context/AuthContext';
-import ProtectedRoute from './components/ProtectedRoute';
-import EndUserLayout from './components/EndUserLayout';
-import AdminLayout from './components/AdminLayout';
-import Home from './pages/Home';
-import Login from './pages/Login';
-import Register from './pages/Register';
-import Courses from './pages/Courses';
-import CourseDetail from './pages/CourseDetail';
-import Dashboard from './pages/Dashboard';
-import AdminDashboard from './pages/AdminDashboard';
-import AdminUsers from './pages/AdminUsers';
-import AdminCourses from './pages/AdminCourses';
+import { ProtectedRoute } from './components/ProtectedRoute';
+import { Layout } from './components/Layout';
+import { Login } from './pages/Login';
+import { Courses } from './pages/Courses';
+import { Subjects } from './pages/Subjects';
+import { Questions } from './pages/Questions';
+import { Quizzes } from './pages/Quizzes';
+import { Users } from './pages/Users';
 
-function App() {
+export function App() {
   return (
     <AuthProvider>
       <Routes>
-        <Route element={<EndUserLayout />}>
-          <Route path="/" element={<Home />} />
-          <Route path="/login" element={<Login />} />
-          <Route path="/register" element={<Register />} />
-          <Route path="/courses" element={<Courses />} />
-          <Route path="/courses/:id" element={<CourseDetail />} />
-          <Route
-            path="/dashboard"
-            element={
-              <ProtectedRoute>
-                <Dashboard />
-              </ProtectedRoute>
-            }
-          />
-        </Route>
+        <Route path="/login" element={<Login />} />
 
         <Route
-          path="/admin"
           element={
-            <ProtectedRoute roles={['admin']}>
-              <AdminLayout />
+            <ProtectedRoute>
+              <Layout />
             </ProtectedRoute>
           }
         >
-          <Route index element={<AdminDashboard />} />
-          <Route path="users" element={<AdminUsers />} />
-          <Route path="courses" element={<AdminCourses />} />
+          <Route path="/" element={<Navigate to="/courses" replace />} />
+          <Route path="/courses" element={<Courses />} />
+          <Route path="/subjects" element={<Subjects />} />
+          <Route path="/questions" element={<Questions />} />
+          <Route path="/quizzes" element={<Quizzes />} />
+          <Route path="/users" element={<Users />} />
         </Route>
       </Routes>
     </AuthProvider>
   );
 }
-
-export default App;

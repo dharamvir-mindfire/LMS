@@ -1,43 +1,61 @@
 ---
 name: backend
-description: This skill should be used when creating or naming any backend file in the LMS Express/TypeScript API under backend/src — controllers, Mongoose models, TypeScript interfaces, route registration, or database seeders. Trigger phrases include "add a controller", "create a model", "add an interface", "add a route", "register a route", "add a seeder", "seed data", "new entity", "scaffold backend", or any request to add backend/src files for an entity (e.g. Course, User, Enrollment, Lesson).
+description: Naming conventions, folder hierarchy, and code style for the LMS backend (Node/Express/TypeScript/Mongoose). Use before creating or editing any file under backend/, so new controllers, routes, models, and utils match existing house style.
 ---
 
-# Backend Naming Conventions (LMS)
+# backend conventions (Node/Express/TypeScript/Mongoose)
 
-Apply these naming rules whenever adding a new controller, model, interface, route, or seeder to `backend/src`. `<Entity>` is the PascalCase singular name of the domain object (e.g. `Course`, `User`, `Enrollment`, `Lesson`).
+## Folder hierarchy
 
-## Controllers
+```
+backend/
+├── .env, .env.development, .env.production, .env.staging, .env.example
+├── package.json, tsconfig.json
+└── src/
+    ├── app.ts          # express app wiring: middleware + route mounting
+    ├── server.ts        # entrypoint: loads env, connects DB, starts listener
+    ├── config/          # Env.ts (dotenv loading), Db.ts (mongoose connectDB)
+    ├── controllers/      # <resource>Controller.ts
+    ├── middleware/       # auth.ts (protect/adminOnly), ErrorHandler.ts
+    ├── models/           # PascalCase singular Mongoose models
+    ├── routes/           # <resource>Routes.ts
+    └── utils/            # asyncHandler.ts, generateToken.ts, slugify.ts
+```
 
-Name controller files `<Entity>Controller.ts` and place them in `backend/src/controllers/`.
+There is no `services/` layer — controllers call Mongoose models directly. There is no `tests/` directory in `backend/` (tests only exist under `App/__tests__`). A leading-underscore file like `_seed-admin-temp.ts` signals a one-off/internal script, not part of the app's request flow.
 
-- Example: a Lesson controller is `backend/src/controllers/LessonController.ts`.
-- Matches the existing controllers (`AuthController.ts`, `CourseController.ts`).
+## File naming
 
-## Models
+- Controllers: `<resource>Controller.ts` (PascalCase + suffix), e.g. `AuthController.ts`, `QuizController.ts`.
+- Routes: `<resource>Routes.ts`, e.g. `QuizRoutes.ts`.
+- Models: PascalCase singular, matching the Mongoose model name exactly, e.g. `User.ts`, `Question.ts`, `Quiz.ts`.
+- Middleware/utils: plain PascalCase, no suffix, e.g. `ErrorHandler.ts`, `AsyncHandler.ts`, `GenerateToken.ts`, `Slugify.ts`.
+- config: plain camelCase, no suffix, e.g. `env.ts`, `db.ts`.
+- seeders: `<resource>Seeder.ts` (PascalCase + suffix), e.g. `UserSeeder.ts`, `QuestionSeeder.ts`.
 
-Name Mongoose model files `<Entity>.ts` and place them in `backend/src/models/`.
+## Code style
 
-- Example: `backend/src/models/Lesson.ts`.
-- This already matches the existing models (`Course.ts`, `User.ts`, `Enrollment.ts`) — keep following it.
+- **Exports**: named exports for controllers, middleware, and utils (`export async function register(...)`, `export function protect(...)`); default export for models, routers, and the app (`export default mongoose.model<IUser>(...)`, `export default router`, `export default app`).
+- **Functions**: named function declarations, not arrows, for controllers/utils (`export async function login(...)`). Mongoose schema methods/hooks use named function expressions so `this` binds correctly (`function hashPassword(next) {...}`, `userSchema.methods.comparePassword = function comparePassword(...) {...}`).
+- **Types**: Mongoose document interfaces are `I`-prefixed PascalCase (`IUser`, `IQuestion`); union/enum-like types are plain PascalCase (`UserRole`, `Difficulty`).
+- **Error handling**: controllers do not use try/catch for expected failures — routes wrap the controller in `asyncHandler(...)` (`src/utils/asyncHandler.ts`) to forward thrown/rejected errors to Express's `next`, caught centrally by `notFound`/`errorHandler` in `src/middleware/errorHandler.ts`. Expected/validation failures return `res.status(x).json({ message })` directly rather than throwing.
+- **Validation**: `express-validator` `body(...)` chains are defined in the route file (see `quizRoutes.ts`'s `quizValidators` array) and passed as route middleware; each controller function checks `validationResult(req)` first and returns 400 with the first error message if invalid.
 
-## Interfaces
+## Database conventions
 
-Name TypeScript interfaces `I<Entity>` (PascalCase, `I` prefix, no separator).
+- `mongoose.model<IX>("X", xSchema)` — the string name is the singular capitalized resource name, matching the file name.
+- Fields are camelCase (`correctOptionIndex`, `questionsAnswered`).
+- References use the string model name (`ref: 'Subject'`, `ref: "Question"`), not the imported model.
 
-- Example: `ICourse`, `IUser`, `IEnrollment`.
-- Use `I<Entity>` for the interface describing that entity's shape (e.g. the Mongoose document interface backing `<Entity>.ts`), not for arbitrary helper types.
+## Route conventions
 
-## Routes
+- REST resource-plural paths mounted under `/api/<resource>` in `src/app.ts`, no version prefix: `/api/auth`, `/api/questions`, `/api/courses`, `/api/subjects`, `/api/quizzes`, `/api/users`.
+- Nested/non-CRUD actions are verb sub-paths on the resource: `/api/quizzes/:id/start`, `/api/quizzes/:id/submit`, `/api/questions/:id/answer`, `/api/auth/send-otp`.
 
-Per-entity route files (e.g. `backend/src/routes/authRoutes.ts`, `courseRoutes.ts`) only define and export an Express `Router` — they must not be mounted onto the app themselves.
+## Env vars
 
-All route registration — mounting each entity router onto its `/api/...` path — happens in a single `backend/src/routes.ts`, which `app.ts` imports and mounts once (e.g. `app.use('/api', routes)`). `app.ts` must not import or mount individual entity route files directly; only `routes.ts` does that.
+SCREAMING_SNAKE_CASE (`NODE_ENV`, `PORT`, `MONGO_URI`, `JWT_SECRET`, `JWT_EXPIRES_IN`), loaded per environment via `.env.development` / `.env.staging` / `.env.production` (falling back to a base `.env`), with required keys documented in `.env.example`.
 
-## Seeders
+## Formatting note
 
-Name seeder files `<Action>Seeder.ts` and place them in `backend/src/seeders/`.
-
-- Example: `backend/src/seeders/DataSeeder.ts` seeds baseline dev/demo data (admin user, sample instructor/student, sample courses) — connects via `connectDB()`, is idempotent (look up by unique field like email/title before creating), and disconnects + exits when done.
-- Register each seeder as an npm script in `backend/package.json` (e.g. `"seed": "tsx src/seeders/DataSeeder.ts"`) rather than requiring it to be run with a raw `tsx` path.
-- Hash passwords with `bcryptjs` before inserting users directly (`User.create` does not hash on its own — hashing happens in `AuthController`, so seeders must replicate that step).
+`backend/` has no ESLint/Prettier config (unlike `App/` and `Web/`), so quote style is inconsistent across older vs. newer files. Prefer **double quotes** to match the newer files (`AuthController.ts`, `User.ts`, `quizRoutes.ts`) rather than the older single-quote style (`errorHandler.ts`, `db.ts`, `Question.ts`).

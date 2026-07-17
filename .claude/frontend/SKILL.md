@@ -1,41 +1,39 @@
 ---
 name: frontend
-description: This skill should be used when creating or naming any frontend file in the LMS React/Vite app under frontend/src — pages, context providers, types/interfaces, styles, assets, or API service calls. Trigger phrases include "add a page", "create a context", "add a type", "add an api call", "scaffold frontend", or any request to add frontend/src files for an entity or feature (e.g. Course, User, Lesson).
+description: Naming conventions, folder hierarchy, and code style for the LMS web admin panel (React + Vite, TypeScript). Use before creating or editing any file under frontend/, so new pages and components match existing house style.
 ---
 
-# Frontend Conventions (LMS)
+# frontend conventions (React + Vite admin panel)
 
-Apply these rules whenever adding a new page, context, type, style, asset, or API call to `frontend/src`. `<Pagename>` / `<ContextName>` are PascalCase names; `<Controller>` is the PascalCase name of the backend controller/entity a service wraps (e.g. `Course`, `Auth`).
+## Folder hierarchy
 
-## Pages
+```
+frontend/src/
+├── api/           # client.ts (axios instance), <resource>Service.ts
+├── components/    # Layout, Modal, DataTable, ProtectedRoute, BulkUploadQuestionsModal
+├── context/       # AuthContext.tsx
+├── pages/         # one file per route/page
+├── utils/         # excelQuestions.ts (bulk upload parsing)
+├── types.ts       # shared TS types
+├── App.tsx, main.tsx, index.css
+└── (public/ holds static SVG assets only)
+```
 
-Name page components `<Pagename>.tsx` and place them in `frontend/src/pages/`.
+## File naming
 
-- Example: a lessons listing page is `frontend/src/pages/Lessons.tsx`.
-- Matches existing pages (`Home.tsx`, `Courses.tsx`, `CourseDetail.tsx`, `Dashboard.tsx`, `Login.tsx`, `Register.tsx`).
+- Pages: PascalCase, with no suffix on CRUD/list pages (`Questions.tsx`, `Courses.tsx`, `Subjects.tsx`, `Quizzes.tsx`, `Users.tsx`) — but **not** on `Login.tsx`.
+- Generic/reusable components: PascalCase, no suffix, e.g. `DataTable.tsx`, `Modal.tsx`.
+- Utils: PascalCase, e.g. `ExcelQuestions.ts`.
 
-## Context
+## Code style
 
-Name context providers `<ContextName>Context.tsx` and place them in `frontend/src/context/`.
+- Use Tailwind CSS utility classes for styling; do not introduce new per-component CSS files or CSS-in-JS.
+- **Components**: **named exports**, not default (`export function DataTable<T>({...}: DataTableProps<T>) { ... }`). This is the opposite of `App/`'s convention — don't mix the two up.
+- **Generics**: reusable components are typed with TS generics rather than duplicated per-entity variants (see `Column<T>` / `DataTableProps<T>` in `components/DataTable.tsx`).
+- **Styling**: no CSS Modules/Tailwind/styled-components. Plain `className` strings map to hand-written classes in the single global `src/index.css`, which defines CSS custom properties on `:root` (`--bg`, `--surface`, `--primary`, `--radius-md`, etc.) plus utility-ish classes (`.btn`, `.btn-primary`, `.card`, `.badge-success`). Add new classes to `index.css` rather than introducing a new styling approach.
+- **State management**: Context API for auth (`context/AuthContext.tsx`, same shape/pattern as `App/`'s `AuthContext`) plus local `useState`/`useEffect` per page for CRUD forms and pagination. No global store library.
+- **API layer**: a single axios instance in `api/client.ts` reading `import.meta.env.VITE_API_URL`, storing the token under `admin_token` in `localStorage`, with a response interceptor that redirects to `/login` on 401. Always surface request failures through the exported `apiErrorMessage(err, fallback)` helper (this app's equivalent of `App/`'s `extractErrorMessage`).
 
-- Example: a cart context is `frontend/src/context/CartContext.tsx`.
-- Matches the existing `frontend/src/context/AuthContext.tsx`.
+## Lint
 
-## Types / Interfaces
-
-Add all TypeScript interfaces and types to the single `frontend/src/types.ts` file — do not create per-entity type files.
-
-## Styles
-
-Use Tailwind CSS utility classes for styling; do not introduce new per-component CSS files or CSS-in-JS.
-
-## Assets
-
-Place images and other static files in `frontend/src/assets/`.
-
-## API Calls
-
-Name API service files `<Controller>Service.ts` and place them in `frontend/src/api/`, mirroring the backend controller they call.
-
-- Example: calls to the backend `CourseController` live in `frontend/src/api/CourseService.ts`.
-- The shared `frontend/src/api/client.ts` (axios/fetch instance) stays as-is — it is not a per-controller service file.
+`oxlint`, not ESLint — see `.oxlintrc.json` (`plugins: ["react", "typescript", "oxc"]`, enforces `react/rules-of-hooks: error` and `react/only-export-components: warn`). No Prettier config in `frontend/`.

@@ -1,26 +1,43 @@
-export type UserRole = 'admin' | 'instructor' | 'student';
+export type UserRole = 'admin' | 'user';
 
 export interface User {
-  id: string;
+  _id: string;
   name: string;
   email: string;
   role: UserRole;
-}
-
-export interface Lesson {
-  _id: string;
-  title: string;
-  content?: string;
-  videoUrl?: string;
-  order?: number;
+  questionsAnswered?: number;
 }
 
 export interface Course {
   _id: string;
   title: string;
   description?: string;
-  instructor: { _id: string; name: string; email: string };
-  lessons: Lesson[];
-  students: string[];
-  published: boolean;
+}
+
+export interface Subject {
+  _id: string;
+  course: { _id: string; title: string } | string;
+  name: string;
+  slug: string;
+  description?: string;
+}
+
+export type Difficulty = 'easy' | 'medium' | 'hard';
+
+export interface Question {
+  _id: string;
+  subject: { _id: string; name: string; slug: string } | string;
+  text: string;
+  options: string[];
+  correctOptionIndex: number;
+  difficulty: Difficulty;
+  explanation?: string;
+}
+
+export interface Quiz {
+  _id: string;
+  title: string;
+  subject: { _id: string; name: string; slug: string } | string;
+  questions: string[];
+  createdBy?: string;
 }

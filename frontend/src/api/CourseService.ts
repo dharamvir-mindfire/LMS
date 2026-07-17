@@ -6,16 +6,16 @@ export async function listCourses(): Promise<Course[]> {
   return res.data.courses;
 }
 
-export async function getCourse(id: string): Promise<Course> {
-  const res = await client.get(`/courses/${id}`);
-  return res.data.course;
-}
-
 export async function createCourse(title: string, description: string): Promise<Course> {
   const res = await client.post('/courses', { title, description });
   return res.data.course;
 }
 
-export async function enrollInCourse(id: string): Promise<void> {
-  await client.post(`/courses/${id}/enroll`);
+export async function updateCourse(id: string, title: string, description: string): Promise<Course> {
+  const res = await client.put(`/courses/${id}`, { title, description });
+  return res.data.course;
+}
+
+export async function deleteCourse(id: string): Promise<void> {
+  await client.delete(`/courses/${id}`);
 }

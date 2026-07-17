@@ -1,21 +1,17 @@
-import { Router } from 'express';
-import {
-  listCourses,
-  getCourse,
-  createCourse,
-  updateCourse,
-  deleteCourse,
-  enroll,
-} from '../controllers/CourseController';
-import { requireAuth, requireRole } from '../middleware/auth';
+import { Router } from "express";
+import { body } from "express-validator";
+import { listCourses, getCourse, createCourse, updateCourse, deleteCourse } from "../controllers/CourseController";
+import { protect, adminOnly } from "../middleware/auth";
+import { asyncHandler } from "../utils/AsyncHandler";
 
 const router = Router();
 
-router.get('/', requireAuth, listCourses);
-router.get('/:id', requireAuth, getCourse);
-router.post('/', requireAuth, requireRole('instructor', 'admin'), createCourse);
-router.put('/:id', requireAuth, requireRole('instructor', 'admin'), updateCourse);
-router.delete('/:id', requireAuth, requireRole('instructor', 'admin'), deleteCourse);
-router.post('/:id/enroll', requireAuth, requireRole('student'), enroll);
+const courseValidators = [body("title").trim().notEmpty().withMessage("title is required")];
+
+router.get("/", protect, asyncHandler(listCourses));
+router.get("/:id", protect, asyncHandler(getCourse));
+router.post("/", protect, adminOnly, courseValidators, asyncHandler(createCourse));
+router.put("/:id", protect, adminOnly, courseValidators, asyncHandler(updateCourse));
+router.delete("/:id", protect, adminOnly, asyncHandler(deleteCourse));
 
 export default router;
