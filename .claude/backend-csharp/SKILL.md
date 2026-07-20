@@ -19,26 +19,30 @@ backend-csharp/
 ├── Data/
 │   └── AppDbContext.cs                # DbSets + all OnModelCreating relationship/index config in one place
 ├── Models/                           # PascalCase singular EF entity classes
-├── Contracts/                           # PascalCase singular interfaces
-      IServices/                        # PascalCase singular (+I<PascalCase>Service)
-      IHandlers/                        # PascalCase singular (+I<PascalCase>Handler)
-├── Services/                        # Service layer contains business logic in <PascalCase>Service.cs, e.g. AuthService.cs, CourseService.cs, QuizService.cs, UserService.cs etc.
-├── Handlers/                        # TokenHandler, OTPHandler etc. — helpers for the service layer, not controllers
-├── Extensions/                        # ClaimsPrincipalExtensions
+├── Contracts/                        # interfaces only — no implementations
+│   ├── IServices/                    # I<Resource>Service.cs, e.g. IAuthService.cs, ICourseService.cs
+│   └── IHandlers/                    # I<Name>Handler.cs, e.g. ITokenHandler.cs, IOTPHandler.cs
+│   └── Enums/                    # enum types, e.g. OtpVerifyResult.cs
+├── Services/                        # <Resource>Service.cs — business logic per resource, e.g. AuthService.cs, CourseService.cs, QuizService.cs, UserService.cs
+├── Handlers/                        # <Name>Handler.cs — TokenHandler (JWT), OTPHandler (OTP issue/verify); consumed by Services, not Controllers
+├── Extensions/                        # ClaimsPrincipalExtensions, ResultExtensions (HttpError + ToActionResult)
 ├── Seeders/                          # <Resource>Seeder.cs, static class with a public RunAsync(AppDbContext)
 ├── Utils/                           # Slugify and other static helpers
 ├── Migrations/                       # EF Core Code-First migrations (generated — don't hand-edit)
 └── Properties/launchSettings.json
 ```
 
-`Handlers/` holds `TokenHandler` and `OTPHandler` helpers.
+There is no `Services/ClaimsPrincipalExtensions.cs` or inline-interface `TokenService.cs` anymore — those were the old shape. Interfaces live under `Contracts/`; `Services/` and `Handlers/` hold implementations only. `Handlers/` sits *below* the service layer: `AuthService` depends on `ITokenHandler`/`IOTPHandler`, but controllers never reference a Handler directly.
 
 ## File naming
 
 - Controllers: `<Resource>Controller.cs` (PascalCase plural + suffix), e.g. `AuthController.cs`, `QuizzesController.cs`, `UsersController.cs`.
 - Models: PascalCase singular EF entity, one file may hold a primary entity plus its join entities, e.g. `Quiz.cs` also defines `QuizSubject`/`QuizQuestion`.
-- DTOs: grouped per resource under `Dtos/<Resource>/<Resource>Dtos.cs` — one file holds every request DTO (`XRequest`), response DTO (`XDto`), and mapper for that resource, not one file per class.
-- Services: plain PascalCase + `Service` suffix, with an `I`-prefixed interface alongside it in the same file (`TokenService.cs` defines both `ITokenService` and `TokenService`).
+- DTOs: grouped per resource under `Controllers/Dtos/<Resource>/<Resource>Dtos.cs` — one file holds every request DTO (`XRequest`), response DTO (`XDto`), and mapper for that resource, not one file per class.
+- Services: `<Resource>Service.cs` under `Services/` (e.g. `AuthService.cs`, `CourseService.cs`), implementing an `I<Resource>Service` declared separately under `Contracts/IServices/I<Resource>Service.cs` — interface and implementation are never in the same file.
+- Handlers: `<Name>Handler.cs` under `Handlers/` (e.g. `TokenHandler.cs`, `OTPHandler.cs`), implementing an `I<Name>Handler` declared separately under `Contracts/IHandlers/I<Name>Handler.cs` — same interface/implementation split as Services.
+- Contracts: singular PascalCase interface file matching the type it declares (`ITokenHandler.cs` declares `ITokenHandler`), grouped under `IServices/` or `IHandlers/` by which layer implements it.
+- Enums: singular PascalCase file matching the enum it declares, under `Contracts/Enums/<Name>.cs` (e.g. `OtpVerifyResult.cs` declares `enum OtpVerifyResult`) — enums are contracts too (a Handler/Service return shape a caller switches on), so they live alongside the interfaces, not next to the implementation that produces them.
 - Seeders: `<Resource>Seeder.cs`, a `static class` with a single public `RunAsync(AppDbContext db)` entrypoint.
 - Utils: plain PascalCase static helper class, no suffix (`Slugify.cs` exposes `Slugify.ToSlug(...)`).
 
@@ -46,13 +50,14 @@ backend-csharp/
 
 - **Namespaces**: file-scoped (`namespace LmsApi.Controllers;`), never block-scoped.
 - **Controllers**: `[ApiController]` + `[Route("api/<resource>")]`; a class-level `[Authorize]` when every action needs *some* authenticated user, overridden per-action with `[Authorize(Roles = "admin")]` for admin-only endpoints, or `[Authorize(Roles = "admin")]` at the class level (`UsersController`) when the whole resource is admin-only. Public endpoints (`register`, `login`, `send-otp`, `verify-otp`) omit `[Authorize]` entirely on a controller that otherwise defaults to authenticated.
-- **DB access**: inject `AppDbContext` via constructor (`private readonly AppDbContext _db;`), query directly in the action — no repository/service indirection.
-- **Error handling**: no try/catch for expected failures. Return `BadRequest`/`NotFound`/`Conflict`/`Unauthorized`/`StatusCode(429, ...)` with `new { message = "..." }` bodies directly, matching the exact message strings used in `backend-node/`'s controllers where behavior is mirrored. Unhandled exceptions are caught centrally by `Program.cs`'s `UseExceptionHandler` (mirrors `errorHandler.ts`); unmatched routes fall through to `MapFallback` (mirrors `notFound`).
-- **Validation**: no `express-validator` equivalent/FluentValidation — each action hand-validates at the top (`if (string.IsNullOrWhiteSpace(request.Title)) return BadRequest(...)`) before touching the DB, then re-checks referenced-id existence with a query (see Adaptations below).
+- **Controllers are thin**: a controller injects only its `I<Resource>Service` (never `AppDbContext` directly) and each action is a one-liner delegating to the service, e.g. `public async Task<IActionResult> Get(int id) => this.ToActionResult(await _courseService.GetAsync(id));`. If an action needs the current user's id, the controller reads it via `User.GetUserId()` and passes it into the service call as a plain `int` parameter — services don't take an `IHttpContextAccessor` dependency.
+- **DB access**: services inject `AppDbContext` via constructor (`private readonly AppDbContext _db;`) and query directly in each method — no repository layer underneath the service either.
+- **Result pattern**: service methods return `FluentResults.Result<T>` (or non-generic `Result` for delete-style actions with no payload) instead of throwing for expected failures. A failure is `Result.Fail<T>(new HttpError(statusCode, "message"))` (`HttpError` and the `ToActionResult`/`ToActionResult<T>` extensions live in `Extensions/ResultExtensions.cs`); a success is `Result.Ok<T>(payload)` where `payload` is already the exact response shape (e.g. `new { course = CourseDto.From(course) }`). The controller maps it in one call: `this.ToActionResult(result)` (200 default) or `this.ToActionResult(result, StatusCodes.Status201Created)` for Create actions — this is what replaces `BadRequest`/`NotFound`/`Conflict`/`Unauthorized`/`StatusCode(429, ...)` calls that used to live in the controller. Message strings and status codes passed to `HttpError` must still match `backend-node/`'s controllers exactly where behavior is mirrored. Unhandled exceptions are caught centrally by `Program.cs`'s `UseExceptionHandler` (mirrors `errorHandler.ts`); unmatched routes fall through to `MapFallback` (mirrors `notFound`).
+- **Validation**: no `express-validator` equivalent/FluentValidation — each service method hand-validates at the top (`if (string.IsNullOrWhiteSpace(request.Title)) return Result.Fail<object>(new HttpError(400, "title is required"));`) before touching the DB, then re-checks referenced-id existence with a query (see Adaptations below).
 - **DTO mapping**: every DTO exposes a `public static XDto From(Model model) => new() { ... };` factory instead of a constructor or AutoMapper profile. Response DTOs needing Mongo-shaped JSON use `[JsonPropertyName("_id")]` on the `Id` property for client compatibility.
 - **JSON casing**: global camelCase policy is set once in `Program.cs` (`JsonNamingPolicy.CamelCase`) — don't set per-DTO naming policies.
-- **Auth helpers**: read the current user's id via the `User.GetUserId()` extension (`Services/ClaimsPrincipalExtensions.cs`), never by hand-parsing claims in a controller.
-- **Timestamps**: `CreatedAt`/`UpdatedAt` are set/touched explicitly in controller code (`DateTime.UtcNow`), there are no EF `SaveChanges` interceptors for this.
+- **Auth helpers**: read the current user's id via the `User.GetUserId()` extension (`Extensions/ClaimsPrincipalExtensions.cs`), never by hand-parsing claims in a controller or service.
+- **Timestamps**: `CreatedAt`/`UpdatedAt` are set/touched explicitly in service code (`DateTime.UtcNow`), there are no EF `SaveChanges` interceptors for this.
 - **Comments**: sparse, and used specifically to flag a deliberate divergence from or mirroring of the Node original — `// Mirrors X.ts's ...`, `// Note: ...` for a known asymmetry, `// Matches Y.ts reusing the same validators for ...`. Don't add comments that just restate the code.
 
 ## Database conventions (EF Core / SQL Server)

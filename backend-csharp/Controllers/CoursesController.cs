@@ -1,9 +1,8 @@
-using LmsApi.Data;
+using LmsApi.Contracts.IServices;
 using LmsApi.Controllers.Dtos.Courses;
-using LmsApi.Models;
+using LmsApi.Extensions;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
 
 namespace LmsApi.Controllers;
 
@@ -12,82 +11,31 @@ namespace LmsApi.Controllers;
 [Route("api/courses")]
 public class CoursesController : ControllerBase
 {
-    private readonly AppDbContext _db;
+    private readonly ICourseService _courseService;
 
-    public CoursesController(AppDbContext db)
+    public CoursesController(ICourseService courseService)
     {
-        _db = db;
+        _courseService = courseService;
     }
 
     [HttpGet]
-    public async Task<IActionResult> List()
-    {
-        var courses = await _db.Courses.OrderBy(c => c.Title).ToListAsync();
-        return Ok(new { courses = courses.Select(CourseDto.From) });
-    }
+    public async Task<IActionResult> List() => this.ToActionResult(await _courseService.ListAsync());
 
     [HttpGet("{id:int}")]
-    public async Task<IActionResult> Get(int id)
-    {
-        var course = await _db.Courses.FindAsync(id);
-        if (course == null)
-            return NotFound(new { message = "Course not found" });
-        return Ok(new { course = CourseDto.From(course) });
-    }
+    public async Task<IActionResult> Get(int id) => this.ToActionResult(await _courseService.GetAsync(id));
 
     [Authorize(Roles = "admin")]
     [HttpPost]
-    public async Task<IActionResult> Create(CourseRequest request)
-    {
-        if (string.IsNullOrWhiteSpace(request.Title))
-            return BadRequest(new { message = "title is required" });
-
-        var course = new Course
-        {
-            Title = request.Title.Trim(),
-            Description = request.Description ?? string.Empty,
-            CreatedAt = DateTime.UtcNow,
-            UpdatedAt = DateTime.UtcNow,
-        };
-        _db.Courses.Add(course);
-        await _db.SaveChangesAsync();
-        return StatusCode(StatusCodes.Status201Created, new { course = CourseDto.From(course) });
-    }
+    public async Task<IActionResult> Create(CourseRequest request) =>
+        this.ToActionResult(await _courseService.CreateAsync(request), StatusCodes.Status201Created);
 
     [Authorize(Roles = "admin")]
     [HttpPut("{id:int}")]
-    public async Task<IActionResult> Update(int id, CourseRequest request)
-    {
-        // Matches CourseRoutes.ts reusing the same validators for create+update:
-        // `title` is required even on a partial update.
-        if (string.IsNullOrWhiteSpace(request.Title))
-            return BadRequest(new { message = "title is required" });
-
-        var course = await _db.Courses.FindAsync(id);
-        if (course == null)
-            return NotFound(new { message = "Course not found" });
-
-        course.Title = request.Title.Trim();
-        if (request.Description != null) course.Description = request.Description;
-        course.UpdatedAt = DateTime.UtcNow;
-        await _db.SaveChangesAsync();
-        return Ok(new { course = CourseDto.From(course) });
-    }
+    public async Task<IActionResult> Update(int id, CourseRequest request) =>
+        this.ToActionResult(await _courseService.UpdateAsync(id, request));
 
     [Authorize(Roles = "admin")]
     [HttpDelete("{id:int}")]
-    public async Task<IActionResult> Delete(int id)
-    {
-        var course = await _db.Courses.FindAsync(id);
-        if (course == null)
-            return NotFound(new { message = "Course not found" });
-
-        var hasSubjects = await _db.Subjects.AnyAsync(s => s.CourseId == id);
-        if (hasSubjects)
-            return Conflict(new { message = "Delete this course's subjects first" });
-
-        _db.Courses.Remove(course);
-        await _db.SaveChangesAsync();
-        return NoContent();
-    }
+    public async Task<IActionResult> Delete(int id) =>
+        this.ToActionResult(await _courseService.DeleteAsync(id));
 }

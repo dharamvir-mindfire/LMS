@@ -1,10 +1,8 @@
-using LmsApi.Data;
+using LmsApi.Contracts.IServices;
 using LmsApi.Controllers.Dtos.Quizzes;
-using LmsApi.Models;
 using LmsApi.Extensions;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
 
 namespace LmsApi.Controllers;
 
@@ -13,191 +11,39 @@ namespace LmsApi.Controllers;
 [Route("api/quizzes")]
 public class QuizzesController : ControllerBase
 {
-    private readonly AppDbContext _db;
+    private readonly IQuizService _quizService;
 
-    public QuizzesController(AppDbContext db)
+    public QuizzesController(IQuizService quizService)
     {
-        _db = db;
+        _quizService = quizService;
     }
-
-    private IQueryable<Quiz> QuizzesWithSubjects() =>
-        _db.Quizzes.Include(q => q.QuizSubjects).ThenInclude(qs => qs.Subject);
-
-    private IQueryable<Quiz> QuizzesWithSubjectsAndQuestions() =>
-        QuizzesWithSubjects().Include(q => q.QuizQuestions).ThenInclude(qq => qq.Question);
 
     [HttpGet]
-    public async Task<IActionResult> List([FromQuery] int? subject)
-    {
-        IQueryable<Quiz> query = QuizzesWithSubjects().Include(q => q.QuizQuestions);
-        if (subject.HasValue) query = query.Where(q => q.QuizSubjects.Any(qs => qs.SubjectId == subject.Value));
-
-        var quizzes = await query.OrderByDescending(q => q.CreatedAt).ToListAsync();
-        return Ok(new { quizzes = quizzes.Select(QuizListItemDto.From) });
-    }
+    public async Task<IActionResult> List([FromQuery] int? subject) =>
+        this.ToActionResult(await _quizService.ListAsync(subject));
 
     [HttpGet("{id:int}")]
-    public async Task<IActionResult> Get(int id)
-    {
-        var quiz = await QuizzesWithSubjectsAndQuestions().FirstOrDefaultAsync(q => q.Id == id);
-        if (quiz == null)
-            return NotFound(new { message = "Quiz not found" });
-        return Ok(new { quiz = QuizDetailDto.From(quiz) });
-    }
+    public async Task<IActionResult> Get(int id) => this.ToActionResult(await _quizService.GetAsync(id));
 
     [Authorize(Roles = "admin")]
     [HttpPost]
-    public async Task<IActionResult> Create(QuizRequest request)
-    {
-        if (string.IsNullOrWhiteSpace(request.Title))
-            return BadRequest(new { message = "title is required" });
-        if (request.Subjects == null || request.Subjects.Count < 1)
-            return BadRequest(new { message = "at least 1 subject is required" });
-        var subjectIds = await _db.Subjects.Where(s => request.Subjects.Contains(s.Id)).Select(s => s.Id).ToListAsync();
-        if (subjectIds.Count != request.Subjects.Distinct().Count())
-            return BadRequest(new { message = "a valid subject is required" });
-        if (request.Questions == null || request.Questions.Count < 1)
-            return BadRequest(new { message = "at least 1 question is required" });
+    public async Task<IActionResult> Create(QuizRequest request) =>
+        this.ToActionResult(await _quizService.CreateAsync(User.GetUserId(), request), StatusCodes.Status201Created);
 
-        var questionIds = await _db.Questions.Where(q => request.Questions.Contains(q.Id)).Select(q => q.Id).ToListAsync();
-
-        var quiz = new Quiz
-        {
-            Title = request.Title.Trim(),
-            CreatedById = User.GetUserId(),
-            CreatedAt = DateTime.UtcNow,
-            UpdatedAt = DateTime.UtcNow,
-            QuizSubjects = subjectIds.Select(sid => new QuizSubject { SubjectId = sid }).ToList(),
-            QuizQuestions = request.Questions
-                .Where(questionIds.Contains)
-                .Select((qid, index) => new QuizQuestion { QuestionId = qid, Order = index })
-                .ToList(),
-        };
-        _db.Quizzes.Add(quiz);
-        await _db.SaveChangesAsync();
-        return StatusCode(StatusCodes.Status201Created, new { quiz = QuizSavedDto.From(quiz) });
-    }
-
-    // Note: QuizRoutes.ts applies no validators to PUT /:id.
     [Authorize(Roles = "admin")]
     [HttpPut("{id:int}")]
-    public async Task<IActionResult> Update(int id, QuizRequest request)
-    {
-        var quiz = await _db.Quizzes
-            .Include(q => q.QuizSubjects)
-            .Include(q => q.QuizQuestions)
-            .FirstOrDefaultAsync(q => q.Id == id);
-        if (quiz == null)
-            return NotFound(new { message = "Quiz not found" });
-
-        if (request.Title != null) quiz.Title = request.Title;
-
-        if (request.Subjects != null)
-        {
-            var subjectIds = await _db.Subjects.Where(s => request.Subjects.Contains(s.Id)).Select(s => s.Id).ToListAsync();
-            quiz.QuizSubjects.Clear();
-            foreach (var sid in subjectIds) quiz.QuizSubjects.Add(new QuizSubject { QuizId = quiz.Id, SubjectId = sid });
-        }
-
-        if (request.Questions != null)
-        {
-            var questionIds = await _db.Questions.Where(q => request.Questions.Contains(q.Id)).Select(q => q.Id).ToListAsync();
-            quiz.QuizQuestions.Clear();
-            var order = 0;
-            foreach (var qid in request.Questions.Where(questionIds.Contains))
-                quiz.QuizQuestions.Add(new QuizQuestion { QuizId = quiz.Id, QuestionId = qid, Order = order++ });
-        }
-
-        quiz.UpdatedAt = DateTime.UtcNow;
-        await _db.SaveChangesAsync();
-        return Ok(new { quiz = QuizSavedDto.From(quiz) });
-    }
+    public async Task<IActionResult> Update(int id, QuizRequest request) =>
+        this.ToActionResult(await _quizService.UpdateAsync(id, request));
 
     [Authorize(Roles = "admin")]
     [HttpDelete("{id:int}")]
-    public async Task<IActionResult> Delete(int id)
-    {
-        var quiz = await _db.Quizzes.FindAsync(id);
-        if (quiz == null)
-            return NotFound(new { message = "Quiz not found" });
-
-        _db.Quizzes.Remove(quiz);
-        await _db.SaveChangesAsync();
-        return NoContent();
-    }
+    public async Task<IActionResult> Delete(int id) =>
+        this.ToActionResult(await _quizService.DeleteAsync(id));
 
     [HttpPost("{id:int}/start")]
-    public async Task<IActionResult> Start(int id)
-    {
-        var quiz = await _db.Quizzes
-            .Include(q => q.QuizSubjects)
-            .Include(q => q.QuizQuestions).ThenInclude(qq => qq.Question)
-            .FirstOrDefaultAsync(q => q.Id == id);
-        if (quiz == null)
-            return NotFound(new { message = "Quiz not found" });
-
-        var dto = new StartQuizDto
-        {
-            Id = quiz.Id,
-            Title = quiz.Title,
-            Subjects = quiz.QuizSubjects.Select(qs => qs.SubjectId).ToList(),
-            Questions = quiz.QuizQuestions.OrderBy(qq => qq.Order).Select(qq => new StartQuestionDto
-            {
-                Id = qq.Question.Id,
-                Text = qq.Question.Text,
-                Options = qq.Question.Options,
-                Difficulty = qq.Question.Difficulty,
-            }).ToList(),
-        };
-        return Ok(new { quiz = dto });
-    }
+    public async Task<IActionResult> Start(int id) => this.ToActionResult(await _quizService.StartAsync(id));
 
     [HttpPost("{id:int}/submit")]
-    public async Task<IActionResult> Submit(int id, SubmitQuizRequest request)
-    {
-        if (request.Answers == null || request.Answers.Count < 1)
-            return BadRequest(new { message = "at least 1 answer is required" });
-
-        var quiz = await _db.Quizzes.FindAsync(id);
-        if (quiz == null)
-            return NotFound(new { message = "Quiz not found" });
-
-        var questionIds = request.Answers.Where(a => a.Question.HasValue).Select(a => a.Question!.Value).ToList();
-        var questions = await _db.Questions.Where(q => questionIds.Contains(q.Id)).ToDictionaryAsync(q => q.Id);
-
-        var correctCount = 0;
-        var results = new List<SubmitResultItemDto>();
-        foreach (var answer in request.Answers)
-        {
-            questions.TryGetValue(answer.Question ?? -1, out var question);
-            var isCorrect = question != null && question.CorrectOptionIndex == answer.SelectedOptionIndex;
-            if (isCorrect) correctCount += 1;
-
-            results.Add(new SubmitResultItemDto
-            {
-                Question = answer.Question ?? 0,
-                Text = question?.Text ?? string.Empty,
-                Options = question?.Options ?? new List<string>(),
-                CorrectOptionIndex = question?.CorrectOptionIndex ?? -1,
-                SelectedOptionIndex = answer.SelectedOptionIndex ?? 0,
-                Explanation = question?.Explanation ?? string.Empty,
-                IsCorrect = isCorrect,
-            });
-        }
-
-        var user = await _db.Users.FindAsync(User.GetUserId());
-        if (user != null)
-        {
-            user.QuestionsAnswered += request.Answers.Count;
-            await _db.SaveChangesAsync();
-        }
-
-        return Ok(new SubmitQuizResponse
-        {
-            Score = correctCount,
-            Total = request.Answers.Count,
-            CorrectCount = correctCount,
-            Results = results,
-        });
-    }
+    public async Task<IActionResult> Submit(int id, SubmitQuizRequest request) =>
+        this.ToActionResult(await _quizService.SubmitAsync(id, User.GetUserId(), request));
 }

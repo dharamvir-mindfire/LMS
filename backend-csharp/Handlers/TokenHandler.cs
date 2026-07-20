@@ -1,15 +1,11 @@
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Text;
+using LmsApi.Contracts.IHandlers;
 using LmsApi.Models;
 using Microsoft.IdentityModel.Tokens;
 
 namespace LmsApi.Handlers;
-
-public interface ITokenHandler
-{
-    string GenerateToken(User user);
-}
 
 // Mirrors utils/GenerateToken.ts: payload is { id, role, name }, signed with
 // the shared secret, expiring after Jwt:ExpiresInDays (default matches the

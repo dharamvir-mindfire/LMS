@@ -1,20 +1,8 @@
+using LmsApi.Contracts.Enums;
+using LmsApi.Contracts.IHandlers;
 using LmsApi.Models;
 
 namespace LmsApi.Handlers;
-
-public enum OtpVerifyResult
-{
-    Success,
-    NoOtpPending,
-    TooManyAttempts,
-    Mismatch,
-}
-
-public interface IOTPHandler
-{
-    string IssueOtp(User user);
-    OtpVerifyResult VerifyOtp(User user, string code);
-}
 
 // Mirrors AuthController.ts's sendOtp/verifyOtp inline OTP logic.
 public class OTPHandler : IOTPHandler

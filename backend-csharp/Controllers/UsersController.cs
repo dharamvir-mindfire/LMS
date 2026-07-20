@@ -1,9 +1,8 @@
-using LmsApi.Data;
-using LmsApi.Controllers.Dtos.Auth;
+using LmsApi.Contracts.IServices;
 using LmsApi.Controllers.Dtos.Users;
+using LmsApi.Extensions;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
 
 namespace LmsApi.Controllers;
 
@@ -13,47 +12,20 @@ namespace LmsApi.Controllers;
 [Route("api/users")]
 public class UsersController : ControllerBase
 {
-    private static readonly string[] ValidRoles = { "admin", "user" };
+    private readonly IUserService _userService;
 
-    private readonly AppDbContext _db;
-
-    public UsersController(AppDbContext db)
+    public UsersController(IUserService userService)
     {
-        _db = db;
+        _userService = userService;
     }
 
     [HttpGet]
-    public async Task<IActionResult> List()
-    {
-        var users = await _db.Users.ToListAsync();
-        return Ok(new { users = users.Select(MeDto.From) });
-    }
+    public async Task<IActionResult> List() => this.ToActionResult(await _userService.ListAsync());
 
     [HttpPatch("{id:int}/role")]
-    public async Task<IActionResult> UpdateRole(int id, UpdateRoleRequest request)
-    {
-        if (request.Role == null || !ValidRoles.Contains(request.Role))
-            return BadRequest(new { message = "a valid role is required" });
-
-        var user = await _db.Users.FindAsync(id);
-        if (user == null)
-            return NotFound(new { message = "User not found" });
-
-        user.Role = request.Role;
-        user.UpdatedAt = DateTime.UtcNow;
-        await _db.SaveChangesAsync();
-        return Ok(new { user = UserRoleUpdateDto.From(user) });
-    }
+    public async Task<IActionResult> UpdateRole(int id, UpdateRoleRequest request) =>
+        this.ToActionResult(await _userService.UpdateRoleAsync(id, request));
 
     [HttpDelete("{id:int}")]
-    public async Task<IActionResult> Delete(int id)
-    {
-        var user = await _db.Users.FindAsync(id);
-        if (user == null)
-            return NotFound(new { message = "User not found" });
-
-        _db.Users.Remove(user);
-        await _db.SaveChangesAsync();
-        return NoContent();
-    }
+    public async Task<IActionResult> Delete(int id) => this.ToActionResult(await _userService.DeleteAsync(id));
 }

@@ -1,8 +1,11 @@
 using System.Text;
 using System.Text.Json;
+using LmsApi.Contracts.IHandlers;
+using LmsApi.Contracts.IServices;
 using LmsApi.Data;
 using LmsApi.Handlers;
 using LmsApi.Seeders;
+using LmsApi.Services;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
@@ -54,6 +57,14 @@ builder.Services.AddDbContext<AppDbContext>(options =>
 
 builder.Services.AddScoped<ITokenHandler, LmsApi.Handlers.TokenHandler>();
 builder.Services.AddScoped<IOTPHandler, OTPHandler>();
+
+builder.Services.AddScoped<IAuthService, AuthService>();
+builder.Services.AddScoped<ICourseService, CourseService>();
+builder.Services.AddScoped<ISubjectService, SubjectService>();
+builder.Services.AddScoped<IQuestionService, QuestionService>();
+builder.Services.AddScoped<IQuizService, QuizService>();
+builder.Services.AddScoped<IUserService, UserService>();
+builder.Services.AddScoped<IHomeService, HomeService>();
 
 var jwtSecret = builder.Configuration["Jwt:Secret"]
     ?? throw new InvalidOperationException("Jwt:Secret is not configured");

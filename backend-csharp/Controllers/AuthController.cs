@@ -1,13 +1,8 @@
-using System.Net.Mail;
-using System.Security.Cryptography;
+using LmsApi.Contracts.IServices;
 using LmsApi.Controllers.Dtos.Auth;
-using LmsApi.Data;
 using LmsApi.Extensions;
-using LmsApi.Handlers;
-using LmsApi.Models;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
 
 namespace LmsApi.Controllers;
 
@@ -15,195 +10,40 @@ namespace LmsApi.Controllers;
 [Route("api/auth")]
 public class AuthController : ControllerBase
 {
-    private readonly AppDbContext _db;
-    private readonly ITokenHandler _tokenHandler;
-    private readonly IOTPHandler _otpHandler;
+    private readonly IAuthService _authService;
 
-    public AuthController(AppDbContext db, ITokenHandler tokenHandler, IOTPHandler otpHandler)
+    public AuthController(IAuthService authService)
     {
-        _db = db;
-        _tokenHandler = tokenHandler;
-        _otpHandler = otpHandler;
-    }
-
-    private static bool IsValidEmail(string? email)
-    {
-        if (string.IsNullOrWhiteSpace(email)) return false;
-        try
-        {
-            _ = new MailAddress(email);
-            return true;
-        }
-        catch (FormatException)
-        {
-            return false;
-        }
+        _authService = authService;
     }
 
     [HttpPost("register")]
-    public async Task<IActionResult> Register(RegisterRequest request)
-    {
-        if (string.IsNullOrWhiteSpace(request.Name))
-            return BadRequest(new { message = "name is required" });
-        if (!IsValidEmail(request.Email))
-            return BadRequest(new { message = "a valid email is required" });
-        if (string.IsNullOrEmpty(request.Password) || request.Password.Length < 6)
-            return BadRequest(new { message = "password must be at least 6 characters" });
-
-        var email = request.Email!.ToLowerInvariant();
-        var existing = await _db.Users.FirstOrDefaultAsync(u => u.Email == email);
-        if (existing != null)
-            return Conflict(new { message = "Email already in use" });
-
-        var user = new User
-        {
-            Name = request.Name.Trim(),
-            Email = email,
-            Password = BCrypt.Net.BCrypt.HashPassword(request.Password, workFactor: 10),
-            Role = "user",
-            HasPassword = true,
-            CreatedAt = DateTime.UtcNow,
-            UpdatedAt = DateTime.UtcNow,
-        };
-        _db.Users.Add(user);
-        await _db.SaveChangesAsync();
-
-        var token = _tokenHandler.GenerateToken(user);
-        return StatusCode(StatusCodes.Status201Created, new AuthResponse { Token = token, User = UserDto.From(user) });
-    }
+    public async Task<IActionResult> Register(RegisterRequest request) =>
+        this.ToActionResult(await _authService.RegisterAsync(request), StatusCodes.Status201Created);
 
     [HttpPost("login")]
-    public async Task<IActionResult> Login(LoginRequest request)
-    {
-        if (!IsValidEmail(request.Email))
-            return BadRequest(new { message = "a valid email is required" });
-        if (string.IsNullOrEmpty(request.Password))
-            return BadRequest(new { message = "password is required" });
-
-        var email = request.Email!.ToLowerInvariant();
-        var user = await _db.Users.FirstOrDefaultAsync(u => u.Email == email);
-        if (user == null || !BCrypt.Net.BCrypt.Verify(request.Password, user.Password))
-            return Unauthorized(new { message = "Invalid credentials" });
-
-        var token = _tokenHandler.GenerateToken(user);
-        return Ok(new AuthResponse { Token = token, User = UserDto.From(user) });
-    }
+    public async Task<IActionResult> Login(LoginRequest request) =>
+        this.ToActionResult(await _authService.LoginAsync(request));
 
     [Authorize]
     [HttpGet("me")]
-    public async Task<IActionResult> Me()
-    {
-        var user = await _db.Users.FindAsync(User.GetUserId());
-        if (user == null)
-            return NotFound(new { message = "User not found" });
-
-        return Ok(new { user = MeDto.From(user) });
-    }
+    public async Task<IActionResult> Me() => this.ToActionResult(await _authService.GetMeAsync(User.GetUserId()));
 
     [HttpPost("send-otp")]
-    public async Task<IActionResult> SendOtp(SendOtpRequest request)
-    {
-        if (!IsValidEmail(request.Email))
-            return BadRequest(new { message = "a valid email is required" });
-
-        var email = request.Email!.ToLowerInvariant();
-        var user = await _db.Users.FirstOrDefaultAsync(u => u.Email == email);
-        if (user == null)
-        {
-            var randomPassword = Convert.ToHexString(RandomNumberGenerator.GetBytes(32)).ToLowerInvariant();
-            user = new User
-            {
-                Name = email.Split('@')[0],
-                Email = email,
-                Password = BCrypt.Net.BCrypt.HashPassword(randomPassword, workFactor: 10),
-                HasPassword = false,
-                Role = "user",
-                CreatedAt = DateTime.UtcNow,
-                UpdatedAt = DateTime.UtcNow,
-            };
-            _db.Users.Add(user);
-        }
-
-        var otpCode = _otpHandler.IssueOtp(user);
-        user.UpdatedAt = DateTime.UtcNow;
-        await _db.SaveChangesAsync();
-
-        Console.WriteLine($"OTP for {user.Email}: {otpCode}");
-        return Ok(new { message = "OTP sent" });
-    }
+    public async Task<IActionResult> SendOtp(SendOtpRequest request) =>
+        this.ToActionResult(await _authService.SendOtpAsync(request));
 
     [HttpPost("verify-otp")]
-    public async Task<IActionResult> VerifyOtp(VerifyOtpRequest request)
-    {
-        if (!IsValidEmail(request.Email))
-            return BadRequest(new { message = "a valid email is required" });
-        if (string.IsNullOrWhiteSpace(request.Otp))
-            return BadRequest(new { message = "otp is required" });
-
-        var email = request.Email!.ToLowerInvariant();
-        var user = await _db.Users.FirstOrDefaultAsync(u => u.Email == email);
-        if (user == null)
-            return BadRequest(new { message = "Invalid or expired OTP" });
-
-        var result = _otpHandler.VerifyOtp(user, request.Otp!);
-        switch (result)
-        {
-            case OtpVerifyResult.NoOtpPending:
-                return BadRequest(new { message = "Invalid or expired OTP" });
-            case OtpVerifyResult.TooManyAttempts:
-                return StatusCode(StatusCodes.Status429TooManyRequests, new { message = "Too many attempts. Request a new OTP" });
-            case OtpVerifyResult.Mismatch:
-                await _db.SaveChangesAsync();
-                return BadRequest(new { message = "Invalid or expired OTP" });
-        }
-
-        user.UpdatedAt = DateTime.UtcNow;
-        await _db.SaveChangesAsync();
-
-        var token = _tokenHandler.GenerateToken(user);
-        return Ok(new AuthResponse { Token = token, User = UserDto.From(user) });
-    }
+    public async Task<IActionResult> VerifyOtp(VerifyOtpRequest request) =>
+        this.ToActionResult(await _authService.VerifyOtpAsync(request));
 
     [Authorize]
     [HttpPatch("profile")]
-    public async Task<IActionResult> UpdateProfile(UpdateProfileRequest request)
-    {
-        if (string.IsNullOrWhiteSpace(request.Name))
-            return BadRequest(new { message = "name is required" });
-
-        var user = await _db.Users.FindAsync(User.GetUserId());
-        if (user == null)
-            return NotFound(new { message = "User not found" });
-
-        user.Name = request.Name.Trim();
-        user.UpdatedAt = DateTime.UtcNow;
-        await _db.SaveChangesAsync();
-        return Ok(new { user = UserDto.From(user) });
-    }
+    public async Task<IActionResult> UpdateProfile(UpdateProfileRequest request) =>
+        this.ToActionResult(await _authService.UpdateProfileAsync(User.GetUserId(), request));
 
     [Authorize]
     [HttpPut("password")]
-    public async Task<IActionResult> UpdatePassword(UpdatePasswordRequest request)
-    {
-        if (string.IsNullOrEmpty(request.NewPassword) || request.NewPassword.Length < 6)
-            return BadRequest(new { message = "password must be at least 6 characters" });
-
-        var user = await _db.Users.FindAsync(User.GetUserId());
-        if (user == null)
-            return NotFound(new { message = "User not found" });
-
-        if (user.HasPassword)
-        {
-            if (string.IsNullOrEmpty(request.CurrentPassword))
-                return BadRequest(new { message = "Current password is required" });
-            if (!BCrypt.Net.BCrypt.Verify(request.CurrentPassword, user.Password))
-                return Unauthorized(new { message = "Current password is incorrect" });
-        }
-
-        user.Password = BCrypt.Net.BCrypt.HashPassword(request.NewPassword, workFactor: 10);
-        user.HasPassword = true;
-        user.UpdatedAt = DateTime.UtcNow;
-        await _db.SaveChangesAsync();
-        return Ok(new { user = UserDto.From(user) });
-    }
+    public async Task<IActionResult> UpdatePassword(UpdatePasswordRequest request) =>
+        this.ToActionResult(await _authService.UpdatePasswordAsync(User.GetUserId(), request));
 }
