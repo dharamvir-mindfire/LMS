@@ -1,6 +1,7 @@
 import {createNativeStackNavigator} from '@react-navigation/native-stack';
 import Home from '../screens/Home';
 import AllQuizzes from '../screens/AllQuizzes';
+import {statusBarScreenOptions, withSafeArea} from '../theme/navigation';
 
 export type HomeStackParamList = {
   Home: undefined;
@@ -11,7 +12,11 @@ const Stack = createNativeStackNavigator<HomeStackParamList>();
 
 export default function HomeStack() {
   return (
-    <Stack.Navigator screenOptions={{headerShown: false}}>
+    <Stack.Navigator
+      screenOptions={{...statusBarScreenOptions, headerShown: false}}
+      screenLayout={({route, options, children}) =>
+        withSafeArea(route.name, options.headerShown, children)
+      }>
       <Stack.Screen name="Home" component={Home} />
       <Stack.Screen
         name="AllQuizzes"

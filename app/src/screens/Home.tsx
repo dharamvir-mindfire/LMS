@@ -1,5 +1,6 @@
-import {useEffect, useState} from 'react';
+import {useCallback, useState} from 'react';
 import {FlatList, Pressable, StyleSheet, Text, View} from 'react-native';
+import {useFocusEffect} from '@react-navigation/native';
 import type {NativeStackScreenProps} from '@react-navigation/native-stack';
 import type {HomeStackParamList} from '../navigation/HomeStack';
 import {navigationRef} from '../navigation/navigationRef';
@@ -17,18 +18,26 @@ export default function Home({navigation}: Props) {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    Promise.all([client.get('/quizzes'), client.get('/home/stats')])
-      .then(([quizzesRes, statsRes]) => {
-        setQuizzes(quizzesRes.data.quizzes);
-        setStats(statsRes.data.stats);
-      })
-      .catch(err => setError(extractErrorMessage(err, 'Failed to load home data')))
-      .finally(() => setLoading(false));
-  }, []);
+  useFocusEffect(
+    useCallback(() => {
+      setLoading(true);
+      Promise.all([client.get('/quizzes'), client.get('/home/stats')])
+        .then(([quizzesRes, statsRes]) => {
+          setQuizzes(quizzesRes.data.quizzes);
+          setStats(statsRes.data.stats);
+        })
+        .catch(err =>
+          setError(extractErrorMessage(err, 'Failed to load home data')),
+        )
+        .finally(() => setLoading(false));
+    }, []),
+  );
 
   function openQuiz(quiz: QuizListItem) {
-    navigationRef.navigate('QuizPlay', {quizId: quiz._id, quizTitle: quiz.title});
+    navigationRef.navigate('QuizPlay', {
+      quizId: quiz._id,
+      quizTitle: quiz.title,
+    });
   }
 
   return (
@@ -38,6 +47,7 @@ export default function Home({navigation}: Props) {
         <Text style={styles.muted}>Loading...</Text>
       ) : (
         <>
+          <Text style={styles.title}>Welcome to the LMS App!</Text>
           {stats && (
             <View style={styles.statsRow}>
               <View style={styles.statCard}>
@@ -73,10 +83,14 @@ export default function Home({navigation}: Props) {
             renderItem={({item}) => (
               <Pressable style={styles.card} onPress={() => openQuiz(item)}>
                 <Text style={styles.cardTitle}>{item.title}</Text>
-                <Text style={styles.muted}>{item.subjects.map(s => s.name).join(', ')}</Text>
+                <Text style={styles.muted}>
+                  {item.subjects.map(s => s.name).join(', ')}
+                </Text>
               </Pressable>
             )}
-            ListEmptyComponent={<Text style={styles.muted}>No quizzes yet.</Text>}
+            ListEmptyComponent={
+              <Text style={styles.muted}>No quizzes yet.</Text>
+            }
           />
         </>
       )}
@@ -85,7 +99,12 @@ export default function Home({navigation}: Props) {
 }
 
 const styles = StyleSheet.create({
-  container: {flex: 1, backgroundColor: colors.background, padding: 16, gap: 12},
+  container: {
+    flex: 1,
+    backgroundColor: colors.background,
+    padding: 16,
+    gap: 12,
+  },
   title: {color: colors.text, fontSize: 24, fontWeight: '700'},
   muted: {color: colors.textMuted},
   error: {color: colors.danger},

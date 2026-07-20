@@ -1,5 +1,6 @@
-import {useEffect, useState} from 'react';
+import {useCallback, useState} from 'react';
 import {FlatList, Pressable, StyleSheet, Text, View} from 'react-native';
+import {useFocusEffect} from '@react-navigation/native';
 import type {NativeStackScreenProps} from '@react-navigation/native-stack';
 import type {CoursesStackParamList} from '../navigation/CoursesStack';
 import client, {extractErrorMessage} from '../api/client';
@@ -13,13 +14,16 @@ export default function Courses({navigation}: Props) {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    client
-      .get('/courses')
-      .then(res => setCourses(res.data.courses))
-      .catch(err => setError(extractErrorMessage(err, 'Failed to load courses')))
-      .finally(() => setLoading(false));
-  }, []);
+  useFocusEffect(
+    useCallback(() => {
+      setLoading(true);
+      client
+        .get('/courses')
+        .then(res => setCourses(res.data.courses))
+        .catch(err => setError(extractErrorMessage(err, 'Failed to load courses')))
+        .finally(() => setLoading(false));
+    }, []),
+  );
 
   return (
     <View style={styles.container}>

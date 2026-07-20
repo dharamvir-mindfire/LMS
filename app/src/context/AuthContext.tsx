@@ -12,6 +12,7 @@ interface AuthContextValue {
   loginWithOtp: (email: string, otp: string) => Promise<User>;
   updateProfile: (name: string) => Promise<User>;
   updatePassword: (newPassword: string, currentPassword?: string) => Promise<User>;
+  refreshUser: () => Promise<void>;
   logout: () => Promise<void>;
 }
 
@@ -20,6 +21,15 @@ const AuthContext = createContext<AuthContextValue | undefined>(undefined);
 export function AuthProvider({children}: {children: ReactNode}) {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
+
+  async function refreshUser() {
+    try {
+      const res = await client.get('/auth/me');
+      setUser(res.data.user);
+    } catch {
+      // ignore — keep whatever user state is currently in memory
+    }
+  }
 
   useEffect(() => {
     AsyncStorage.getItem(TOKEN_KEY).then(async token => {
@@ -74,7 +84,7 @@ export function AuthProvider({children}: {children: ReactNode}) {
   }
 
   const value = useMemo(
-    () => ({user, loading, login, sendOtp, loginWithOtp, updateProfile, updatePassword, logout}),
+    () => ({user, loading, login, sendOtp, loginWithOtp, updateProfile, updatePassword, refreshUser, logout}),
     [user, loading],
   );
 

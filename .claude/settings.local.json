@@ -4,7 +4,8 @@
       "Bash(mv authController.ts AuthController.ts)",
       "Bash(mv courseController.ts CourseController.ts)",
       "Bash(npx tsc *)",
-      "Bash(npm install *)"
+      "Bash(npm install *)",
+      "Bash(npm run *)"
     ]
   }
 }

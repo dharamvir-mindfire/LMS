@@ -7,6 +7,7 @@ import QuizPlay from '../screens/QuizPlay';
 import MainTabs from './MainTabs';
 import {navigationRef} from './navigationRef';
 import colors from '../theme/colors';
+import {navigationTheme, statusBarScreenOptions, withSafeArea} from '../theme/navigation';
 
 export type RootStackParamList = {
   Login: undefined;
@@ -28,14 +29,25 @@ export default function RootNavigator() {
   }
 
   return (
-    <NavigationContainer ref={navigationRef}>
-      <Stack.Navigator screenOptions={{headerShown: false}}>
+    <NavigationContainer ref={navigationRef} theme={navigationTheme}>
+      <Stack.Navigator
+        screenOptions={{
+          ...statusBarScreenOptions,
+          headerShown: false,
+        }}
+        screenLayout={({route, options, children}) =>
+          withSafeArea(route.name, options.headerShown, children)
+        }>
         {!user ? (
           <Stack.Screen name="Login" component={Login} />
         ) : (
           <>
             <Stack.Screen name="Main" component={MainTabs} />
-            <Stack.Screen name="QuizPlay" component={QuizPlay} options={{headerShown: true}} />
+            <Stack.Screen
+              name="QuizPlay"
+              component={QuizPlay}
+              options={({route}) => ({headerShown: true, title: route.params.quizTitle})}
+            />
           </>
         )}
       </Stack.Navigator>

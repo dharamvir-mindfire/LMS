@@ -17,7 +17,7 @@ interface QuizResult {
 }
 
 export default function QuizPlay({route}: Props) {
-  const {quizId, quizTitle} = route.params;
+  const {quizId} = route.params;
   const [questions, setQuestions] = useState<Question[]>([]);
   const [answers, setAnswers] = useState<Record<string, number>>({});
   const [result, setResult] = useState<QuizResult | null>(null);
@@ -42,10 +42,12 @@ export default function QuizPlay({route}: Props) {
     setError('');
     try {
       const payload = {
-        answers: Object.entries(answers).map(([question, selectedOptionIndex]) => ({
-          question,
-          selectedOptionIndex,
-        })),
+        answers: Object.entries(answers).map(
+          ([question, selectedOptionIndex]) => ({
+            question,
+            selectedOptionIndex,
+          }),
+        ),
       };
       const res = await client.post(`/quizzes/${quizId}/submit`, payload);
       setResult(res.data);
@@ -66,8 +68,9 @@ export default function QuizPlay({route}: Props) {
 
   if (result) {
     return (
-      <ScrollView style={styles.container} contentContainerStyle={styles.content}>
-        <Text style={styles.title}>{quizTitle}</Text>
+      <ScrollView
+        style={styles.container}
+        contentContainerStyle={styles.content}>
         <Text style={styles.resultText}>
           Score: {result.score} / {result.total}
         </Text>
@@ -85,18 +88,29 @@ export default function QuizPlay({route}: Props) {
                   style={[
                     styles.resultOption,
                     isCorrectOption && styles.resultOptionCorrect,
-                    isSelectedOption && !isCorrectOption && styles.resultOptionIncorrect,
+                    isSelectedOption &&
+                      !isCorrectOption &&
+                      styles.resultOptionIncorrect,
                   ]}>
                   <Text style={styles.resultOptionText}>{option}</Text>
-                  {isSelectedOption ? <Text style={styles.resultOptionTag}>Your answer</Text> : null}
-                  {isCorrectOption ? <Text style={styles.resultOptionTag}>Correct answer</Text> : null}
+                  {isSelectedOption ? (
+                    <Text style={styles.resultOptionTag}>Your answer</Text>
+                  ) : null}
+                  {isCorrectOption ? (
+                    <Text style={styles.resultOptionTag}>Correct answer</Text>
+                  ) : null}
                 </View>
               );
             })}
-            <Text style={item.isCorrect ? styles.correctLabel : styles.incorrectLabel}>
+            <Text
+              style={
+                item.isCorrect ? styles.correctLabel : styles.incorrectLabel
+              }>
               {item.isCorrect ? 'Correct' : 'Incorrect'}
             </Text>
-            {item.explanation ? <Text style={styles.explanation}>{item.explanation}</Text> : null}
+            {item.explanation ? (
+              <Text style={styles.explanation}>{item.explanation}</Text>
+            ) : null}
           </View>
         ))}
       </ScrollView>
@@ -105,7 +119,6 @@ export default function QuizPlay({route}: Props) {
 
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.content}>
-      <Text style={styles.title}>{quizTitle}</Text>
       {error ? <Text style={styles.error}>{error}</Text> : null}
       {questions.map(question => (
         <QuestionCard
@@ -124,8 +137,7 @@ export default function QuizPlay({route}: Props) {
 
 const styles = StyleSheet.create({
   container: {flex: 1, backgroundColor: colors.background, padding: 16},
-  content: {gap: 12},
-  title: {color: colors.text, fontSize: 20, fontWeight: '700', marginBottom: 8},
+  content: {gap: 12, paddingBottom: 25},
   muted: {color: colors.textMuted},
   error: {color: colors.danger},
   resultText: {color: colors.text, fontSize: 18, marginBottom: 8},

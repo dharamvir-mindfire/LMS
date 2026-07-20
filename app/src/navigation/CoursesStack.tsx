@@ -2,6 +2,7 @@ import {createNativeStackNavigator} from '@react-navigation/native-stack';
 import Courses from '../screens/Courses';
 import CourseSubjects from '../screens/CourseSubjects';
 import SubjectQuizzes from '../screens/SubjectQuizzes';
+import {statusBarScreenOptions, withSafeArea} from '../theme/navigation';
 
 export type CoursesStackParamList = {
   Courses: undefined;
@@ -13,7 +14,11 @@ const Stack = createNativeStackNavigator<CoursesStackParamList>();
 
 export default function CoursesStack() {
   return (
-    <Stack.Navigator>
+    <Stack.Navigator
+      screenOptions={statusBarScreenOptions}
+      screenLayout={({route, options, children}) =>
+        withSafeArea(route.name, options.headerShown, children)
+      }>
       <Stack.Screen name="Courses" component={Courses} options={{title: 'Courses'}} />
       <Stack.Screen
         name="CourseSubjects"
