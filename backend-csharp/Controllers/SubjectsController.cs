@@ -1,5 +1,5 @@
 using LmsApi.Data;
-using LmsApi.Dtos.Subjects;
+using LmsApi.Controllers.Dtos.Subjects;
 using LmsApi.Models;
 using LmsApi.Utils;
 using Microsoft.AspNetCore.Authorization;

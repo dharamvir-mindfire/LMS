@@ -1,7 +1,7 @@
 using System.Text.Json.Serialization;
 using LmsApi.Models;
 
-namespace LmsApi.Dtos.Courses;
+namespace LmsApi.Controllers.Dtos.Courses;
 
 public class CourseDto
 {

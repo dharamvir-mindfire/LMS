@@ -1,8 +1,8 @@
 using System.Text.Json.Serialization;
-using LmsApi.Dtos.Subjects;
+using LmsApi.Controllers.Dtos.Subjects;
 using LmsApi.Models;
 
-namespace LmsApi.Dtos.Questions;
+namespace LmsApi.Controllers.Dtos.Questions;
 
 public class QuestionDto
 {

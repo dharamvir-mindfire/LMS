@@ -5,7 +5,9 @@
       "Bash(mv courseController.ts CourseController.ts)",
       "Bash(npx tsc *)",
       "Bash(npm install *)",
-      "Bash(npm run *)"
+      "Bash(npm run *)",
+      "Bash(git mv *)",
+      "Bash(dotnet build *)"
     ]
   }
 }

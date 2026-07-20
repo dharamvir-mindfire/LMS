@@ -1,7 +1,7 @@
 using System.Text.Json.Serialization;
 using LmsApi.Models;
 
-namespace LmsApi.Dtos.Auth;
+namespace LmsApi.Controllers.Dtos.Auth;
 
 // Mirrors AuthController.ts's serializeUser().
 public class UserDto

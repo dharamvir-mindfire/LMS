@@ -1,6 +1,6 @@
 using LmsApi.Data;
-using LmsApi.Dtos.Auth;
-using LmsApi.Dtos.Users;
+using LmsApi.Controllers.Dtos.Auth;
+using LmsApi.Controllers.Dtos.Users;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;

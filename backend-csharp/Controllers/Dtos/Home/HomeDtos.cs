@@ -1,4 +1,4 @@
-namespace LmsApi.Dtos.Home;
+namespace LmsApi.Controllers.Dtos.Home;
 
 public class HomeStatsDto
 {

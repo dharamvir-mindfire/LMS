@@ -1,8 +1,8 @@
 using System.Text.Json.Serialization;
-using LmsApi.Dtos.Subjects;
+using LmsApi.Controllers.Dtos.Subjects;
 using LmsApi.Models;
 
-namespace LmsApi.Dtos.Quizzes;
+namespace LmsApi.Controllers.Dtos.Quizzes;
 
 // Mirrors listQuizzes: subjects populated ("name slug"), questions left as raw ids.
 public class QuizListItemDto

@@ -1,7 +1,7 @@
 using LmsApi.Data;
-using LmsApi.Dtos.Quizzes;
+using LmsApi.Controllers.Dtos.Quizzes;
 using LmsApi.Models;
-using LmsApi.Services;
+using LmsApi.Extensions;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;

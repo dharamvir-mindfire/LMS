@@ -19,8 +19,11 @@ backend-csharp/
 ├── Data/
 │   └── AppDbContext.cs                # DbSets + all OnModelCreating relationship/index config in one place
 ├── Models/                           # PascalCase singular EF entity classes
-├── Services/                        # TokenService (+ITokenService)
-├── Handlers/                        # TokenHandler (+ITokenHandler), OTPHandler (+IOTPHandler)
+├── Contracts/                           # PascalCase singular interfaces
+      IServices/                        # PascalCase singular (+I<PascalCase>Service)
+      IHandlers/                        # PascalCase singular (+I<PascalCase>Handler)
+├── Services/                        # Service layer contains business logic in <PascalCase>Service.cs, e.g. AuthService.cs, CourseService.cs, QuizService.cs, UserService.cs etc.
+├── Handlers/                        # TokenHandler, OTPHandler etc. — helpers for the service layer, not controllers
 ├── Extensions/                        # ClaimsPrincipalExtensions
 ├── Seeders/                          # <Resource>Seeder.cs, static class with a public RunAsync(AppDbContext)
 ├── Utils/                           # Slugify and other static helpers

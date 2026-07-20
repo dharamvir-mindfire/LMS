@@ -1,9 +1,10 @@
 using System.Net.Mail;
 using System.Security.Cryptography;
+using LmsApi.Controllers.Dtos.Auth;
 using LmsApi.Data;
-using LmsApi.Dtos.Auth;
+using LmsApi.Extensions;
+using LmsApi.Handlers;
 using LmsApi.Models;
-using LmsApi.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -14,16 +15,15 @@ namespace LmsApi.Controllers;
 [Route("api/auth")]
 public class AuthController : ControllerBase
 {
-    private const int OtpExpiryMinutes = 10;
-    private const int OtpMaxAttempts = 5;
-
     private readonly AppDbContext _db;
-    private readonly ITokenService _tokenService;
+    private readonly ITokenHandler _tokenHandler;
+    private readonly IOTPHandler _otpHandler;
 
-    public AuthController(AppDbContext db, ITokenService tokenService)
+    public AuthController(AppDbContext db, ITokenHandler tokenHandler, IOTPHandler otpHandler)
     {
         _db = db;
-        _tokenService = tokenService;
+        _tokenHandler = tokenHandler;
+        _otpHandler = otpHandler;
     }
 
     private static bool IsValidEmail(string? email)
@@ -68,7 +68,7 @@ public class AuthController : ControllerBase
         _db.Users.Add(user);
         await _db.SaveChangesAsync();
 
-        var token = _tokenService.GenerateToken(user);
+        var token = _tokenHandler.GenerateToken(user);
         return StatusCode(StatusCodes.Status201Created, new AuthResponse { Token = token, User = UserDto.From(user) });
     }
 
@@ -85,7 +85,7 @@ public class AuthController : ControllerBase
         if (user == null || !BCrypt.Net.BCrypt.Verify(request.Password, user.Password))
             return Unauthorized(new { message = "Invalid credentials" });
 
-        var token = _tokenService.GenerateToken(user);
+        var token = _tokenHandler.GenerateToken(user);
         return Ok(new AuthResponse { Token = token, User = UserDto.From(user) });
     }
 
@@ -124,10 +124,7 @@ public class AuthController : ControllerBase
             _db.Users.Add(user);
         }
 
-        var otpCode = Random.Shared.Next(100000, 1000000).ToString();
-        user.OtpCode = otpCode;
-        user.OtpExpiresAt = DateTime.UtcNow.AddMinutes(OtpExpiryMinutes);
-        user.OtpAttempts = 0;
+        var otpCode = _otpHandler.IssueOtp(user);
         user.UpdatedAt = DateTime.UtcNow;
         await _db.SaveChangesAsync();
 
@@ -145,26 +142,25 @@ public class AuthController : ControllerBase
 
         var email = request.Email!.ToLowerInvariant();
         var user = await _db.Users.FirstOrDefaultAsync(u => u.Email == email);
-        if (user == null || user.OtpCode == null || user.OtpExpiresAt == null)
+        if (user == null)
             return BadRequest(new { message = "Invalid or expired OTP" });
 
-        if (user.OtpAttempts >= OtpMaxAttempts)
-            return StatusCode(StatusCodes.Status429TooManyRequests, new { message = "Too many attempts. Request a new OTP" });
-
-        if (user.OtpCode != request.Otp || user.OtpExpiresAt.Value < DateTime.UtcNow)
+        var result = _otpHandler.VerifyOtp(user, request.Otp!);
+        switch (result)
         {
-            user.OtpAttempts += 1;
-            await _db.SaveChangesAsync();
-            return BadRequest(new { message = "Invalid or expired OTP" });
+            case OtpVerifyResult.NoOtpPending:
+                return BadRequest(new { message = "Invalid or expired OTP" });
+            case OtpVerifyResult.TooManyAttempts:
+                return StatusCode(StatusCodes.Status429TooManyRequests, new { message = "Too many attempts. Request a new OTP" });
+            case OtpVerifyResult.Mismatch:
+                await _db.SaveChangesAsync();
+                return BadRequest(new { message = "Invalid or expired OTP" });
         }
 
-        user.OtpCode = null;
-        user.OtpExpiresAt = null;
-        user.OtpAttempts = 0;
         user.UpdatedAt = DateTime.UtcNow;
         await _db.SaveChangesAsync();
 
-        var token = _tokenService.GenerateToken(user);
+        var token = _tokenHandler.GenerateToken(user);
         return Ok(new AuthResponse { Token = token, User = UserDto.From(user) });
     }
 

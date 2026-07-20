@@ -4,9 +4,9 @@ using System.Text;
 using LmsApi.Models;
 using Microsoft.IdentityModel.Tokens;
 
-namespace LmsApi.Services;
+namespace LmsApi.Handlers;
 
-public interface ITokenService
+public interface ITokenHandler
 {
     string GenerateToken(User user);
 }
@@ -14,11 +14,11 @@ public interface ITokenService
 // Mirrors utils/GenerateToken.ts: payload is { id, role, name }, signed with
 // the shared secret, expiring after Jwt:ExpiresInDays (default matches the
 // Node API's JWT_EXPIRES_IN=7d).
-public class TokenService : ITokenService
+public class TokenHandler : ITokenHandler
 {
     private readonly IConfiguration _configuration;
 
-    public TokenService(IConfiguration configuration)
+    public TokenHandler(IConfiguration configuration)
     {
         _configuration = configuration;
     }

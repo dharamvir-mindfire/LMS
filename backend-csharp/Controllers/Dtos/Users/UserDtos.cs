@@ -1,7 +1,7 @@
 using System.Text.Json.Serialization;
 using LmsApi.Models;
 
-namespace LmsApi.Dtos.Users;
+namespace LmsApi.Controllers.Dtos.Users;
 
 public class UpdateRoleRequest
 {
