@@ -15,18 +15,20 @@ backend-csharp/
 ├── LmsApi.csproj                     # net10.0, Nullable+ImplicitUsings enabled
 ├── Program.cs                        # top-level statements: seed-mode branch, DI wiring, JWT auth, CORS, middleware pipeline
 ├── Controllers/                      # <Resource>Controller.cs
+│   └── Dtos/<Resource>/<Resource>Dtos.cs   # one file per resource holding every request/response shape for it
 ├── Data/
 │   └── AppDbContext.cs                # DbSets + all OnModelCreating relationship/index config in one place
-├── Dtos/<Resource>/<Resource>Dtos.cs   # one file per resource holding every request/response shape for it
 ├── Models/                           # PascalCase singular EF entity classes
-├── Services/                        # TokenService (+ITokenService), ClaimsPrincipalExtensions
+├── Services/                        # TokenService (+ITokenService)
+├── Handlers/                        # TokenHandler (+ITokenHandler), OTPHandler (+IOTPHandler)
+├── Extensions/                        # ClaimsPrincipalExtensions
 ├── Seeders/                          # <Resource>Seeder.cs, static class with a public RunAsync(AppDbContext)
 ├── Utils/                           # Slugify and other static helpers
 ├── Migrations/                       # EF Core Code-First migrations (generated — don't hand-edit)
 └── Properties/launchSettings.json
 ```
 
-There is no `services/` layer in the Node sense — `Services/` here only holds `TokenService` and the `ClaimsPrincipalExtensions` helper; controllers still talk to `AppDbContext` directly, same as `backend-node/` controllers talk to Mongoose models directly. There is no `tests/` directory (matches `backend-node/`, which also has none).
+`Handlers/` holds `TokenHandler` and `OTPHandler` helpers.
 
 ## File naming
 
@@ -40,7 +42,7 @@ There is no `services/` layer in the Node sense — `Services/` here only holds 
 ## Code style
 
 - **Namespaces**: file-scoped (`namespace LmsApi.Controllers;`), never block-scoped.
-- **Controllers**: `[ApiController]` + `[Route("api/<resource>")]`; a class-level `[Authorize]` when every action needs *some* authenticated user, overridden per-action with `[Authorize(Roles = "admin")]` for admin-only endpoints, or `[Authorize(Roles = "admin")]` at the class level (`UsersController`) when the whole resource is admin-only — mirrors `protect`/`adminOnly` middleware chaining in `backend-node/`. Public endpoints (`register`, `login`, `send-otp`, `verify-otp`) omit `[Authorize]` entirely on a controller that otherwise defaults to authenticated.
+- **Controllers**: `[ApiController]` + `[Route("api/<resource>")]`; a class-level `[Authorize]` when every action needs *some* authenticated user, overridden per-action with `[Authorize(Roles = "admin")]` for admin-only endpoints, or `[Authorize(Roles = "admin")]` at the class level (`UsersController`) when the whole resource is admin-only. Public endpoints (`register`, `login`, `send-otp`, `verify-otp`) omit `[Authorize]` entirely on a controller that otherwise defaults to authenticated.
 - **DB access**: inject `AppDbContext` via constructor (`private readonly AppDbContext _db;`), query directly in the action — no repository/service indirection.
 - **Error handling**: no try/catch for expected failures. Return `BadRequest`/`NotFound`/`Conflict`/`Unauthorized`/`StatusCode(429, ...)` with `new { message = "..." }` bodies directly, matching the exact message strings used in `backend-node/`'s controllers where behavior is mirrored. Unhandled exceptions are caught centrally by `Program.cs`'s `UseExceptionHandler` (mirrors `errorHandler.ts`); unmatched routes fall through to `MapFallback` (mirrors `notFound`).
 - **Validation**: no `express-validator` equivalent/FluentValidation — each action hand-validates at the top (`if (string.IsNullOrWhiteSpace(request.Title)) return BadRequest(...)`) before touching the DB, then re-checks referenced-id existence with a query (see Adaptations below).
