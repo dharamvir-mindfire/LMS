@@ -4,7 +4,7 @@ import RootNavigator from './src/navigation/RootNavigator';
 
 export default function App() {
   return (
-    <SafeAreaProvider>
+    <SafeAreaProvider style={{maxWidth: 480, marginHorizontal: 'auto'}}>
       <AuthProvider>
         <RootNavigator />
       </AuthProvider>
