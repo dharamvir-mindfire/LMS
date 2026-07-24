@@ -28,7 +28,7 @@ export default function MainTabs() {
         headerShown: false,
         tabBarActiveTintColor: colors.purple,
         tabBarInactiveTintColor: colors.textMuted,
-        tabBarStyle: {backgroundColor: colors.surface, borderTopColor: colors.border},
+        tabBarStyle: {backgroundColor: colors.surface, borderTopColor: colors.border, height: 55},
         tabBarIcon: ({color, size}) => (
           <MaterialIcons name={TAB_ICONS[route.name as keyof MainTabParamList]} color={color} size={size} />
         ),
