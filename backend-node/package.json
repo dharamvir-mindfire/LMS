@@ -2,11 +2,11 @@
   "name": "lms-backend",
   "version": "1.0.0",
   "description": "LMS backend API",
-  "main": "dist/server.js",
+  "main": "../build/backend-node/server.js",
   "type": "commonjs",
   "scripts": {
     "build": "tsc",
-    "start": "node dist/server.js",
+    "start": "node ../build/backend-node/server.js",
     "dev": "tsx watch src/server.ts",
     "seed:users": "tsx src/seeders/UserSeeder.ts",
     "seed:questions": "tsx src/seeders/QuestionSeeder.ts",

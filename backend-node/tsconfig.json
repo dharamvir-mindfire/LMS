@@ -4,7 +4,7 @@
     "module": "node16",
     "moduleResolution": "node16",
     "lib": ["ES2022"],
-    "outDir": "dist",
+    "outDir": "../build/backend-node",
     "rootDir": "src",
     "strict": true,
     "esModuleInterop": true,

@@ -6,7 +6,7 @@
     "install:all": "npm install --prefix backend-node && npm install --prefix frontend",
     "dev": "concurrently -n ,backend-csharp,frontend,app -c blue,magenta,green,yellow \"dotnet run --project backend-csharp\" \"npm run dev --prefix frontend\" \"npm run dev --prefix app\"",
     "dev:node": "concurrently -n ,backend-node,frontend,app -c blue,magenta,green,yellow \"npm run dev --prefix backend-node\" \"npm run dev --prefix frontend\" \"npm run dev --prefix app\"",
-    "build": "dotnet run publish --prefix backend-csharp && npm run build --prefix frontend",
+    "build": "dotnet publish backend-csharp && npm run build --prefix frontend",
     "build:node": "npm run build --prefix backend-node && npm run build --prefix frontend",
     "app": "npm run start --prefix app"
   },
