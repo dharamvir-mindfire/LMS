@@ -139,11 +139,10 @@ var app = builder.Build();
 // ever forwards /api/* to this App Service — frontend/public/staticwebapp.config.json
 // rewrites the friendly /swagger/* URLs down to these routes so the address
 // bar can stay prefix-free.
-app.MapOpenApi("/api/openapi/{documentName}.json");
+app.MapOpenApi("/openapi/{documentName}.json");
 app.UseSwaggerUI(options =>
 {
-    options.SwaggerEndpoint("/api/openapi/v1.json", "LMS API v1");
-    options.RoutePrefix = "api/swagger";
+    options.SwaggerEndpoint("/openapi/v1.json", "LMS API v1");
 });
 
 // Mirrors middleware/ErrorHandler.ts's `errorHandler`: any unhandled
