@@ -4,6 +4,7 @@ import {useFocusEffect} from '@react-navigation/native';
 import type {NativeStackScreenProps} from '@react-navigation/native-stack';
 import type {CoursesStackParamList} from '../navigation/CoursesStack';
 import client, {extractErrorMessage} from '../api/client';
+import Loader from '../components/Loader';
 import colors from '../theme/colors';
 import type {Course} from '../types';
 
@@ -29,7 +30,7 @@ export default function Courses({navigation}: Props) {
     <View style={styles.container}>
       {error ? <Text style={styles.error}>{error}</Text> : null}
       {loading ? (
-        <Text style={styles.muted}>Loading...</Text>
+        <Loader />
       ) : (
         <FlatList
           data={courses}

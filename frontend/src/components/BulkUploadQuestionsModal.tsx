@@ -4,6 +4,7 @@ import { parseQuestionsCsv } from '../utils/ExcelQuestions';
 import * as QuestionService from '../api/QuestionService';
 import { apiErrorMessage } from '../api/client';
 import { Modal } from './Modal';
+import { Spinner } from './Spinner';
 
 export interface BulkUploadQuestionsModalProps {
   subjects: Subject[];
@@ -71,7 +72,7 @@ export function BulkUploadQuestionsModal({ subjects, onClose, onUploaded }: Bulk
           }}
         />
       </div>
-      {uploading && <p>Uploading...</p>}
+      {uploading && <Spinner label="Uploading..." size="sm" />}
       {count !== null && !error && !uploading && <p>Uploaded {count} question(s).</p>}
       {error && <p className="form-error">{error}</p>}
     </Modal>

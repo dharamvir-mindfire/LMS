@@ -36,6 +36,12 @@
   }
 }
 
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
 @layer base {
   * {
     @apply box-border;
@@ -212,6 +218,22 @@
 
   .modal-footer {
     @apply flex justify-end gap-2 mt-5;
+  }
+
+  /* Spinner */
+
+  .spinner-wrap {
+    @apply flex items-center justify-center gap-3 py-10 text-[var(--text-muted)] text-[0.9rem];
+  }
+
+  .spinner {
+    @apply inline-block w-6 h-6 rounded-full border-[3px] border-[var(--border)];
+    border-top-color: var(--primary);
+    animation: spin 0.7s linear infinite;
+  }
+
+  .spinner-sm {
+    @apply w-4 h-4 border-2;
   }
 
   /* Login page */

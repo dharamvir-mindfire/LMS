@@ -5,6 +5,7 @@ import * as CourseService from '../api/CourseService';
 import { apiErrorMessage } from '../api/client';
 import { DataTable } from '../components/DataTable';
 import { Modal } from '../components/Modal';
+import { Spinner } from '../components/Spinner';
 
 export function Courses() {
   const [courses, setCourses] = useState<Course[]>([]);
@@ -76,7 +77,7 @@ export function Courses() {
 
       {error && <p className="form-error">{error}</p>}
       {loading ? (
-        <p>Loading...</p>
+        <Spinner />
       ) : (
         <DataTable
           columns={[

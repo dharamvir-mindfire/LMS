@@ -5,6 +5,7 @@ import type {NativeStackScreenProps} from '@react-navigation/native-stack';
 import type {HomeStackParamList} from '../navigation/HomeStack';
 import {navigationRef} from '../navigation/navigationRef';
 import client, {extractErrorMessage} from '../api/client';
+import Loader from '../components/Loader';
 import colors from '../theme/colors';
 import type {HomeStats, QuizListItem} from '../types';
 
@@ -44,7 +45,7 @@ export default function Home({navigation}: Props) {
     <View style={styles.container}>
       {error ? <Text style={styles.error}>{error}</Text> : null}
       {loading ? (
-        <Text style={styles.muted}>Loading...</Text>
+        <Loader />
       ) : (
         <>
           <Text style={styles.title}>Welcome to the LMS App!</Text>

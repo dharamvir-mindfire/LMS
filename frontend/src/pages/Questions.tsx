@@ -7,6 +7,7 @@ import { apiErrorMessage } from '../api/client';
 import { DataTable } from '../components/DataTable';
 import { Modal } from '../components/Modal';
 import { BulkUploadQuestionsModal } from '../components/BulkUploadQuestionsModal';
+import { Spinner } from '../components/Spinner';
 
 const DIFFICULTIES: Difficulty[] = ['easy', 'medium', 'hard'];
 const MIN_OPTIONS = 2;
@@ -131,7 +132,7 @@ export function Questions() {
       {subjects.length === 0 && <p className="form-error">Create a subject first.</p>}
       {error && <p className="form-error">{error}</p>}
       {loading ? (
-        <p>Loading...</p>
+        <Spinner />
       ) : (
         <DataTable
           columns={[

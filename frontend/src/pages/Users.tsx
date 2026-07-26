@@ -3,6 +3,7 @@ import type { User, UserRole } from "../types";
 import * as UserService from "../api/UserService";
 import { apiErrorMessage } from "../api/client";
 import { DataTable } from "../components/DataTable";
+import { Spinner } from "../components/Spinner";
 
 const ROLES: UserRole[] = ["admin", "user"];
 
@@ -50,7 +51,7 @@ export function Users() {
 
       {error && <p className="form-error">{error}</p>}
       {loading ? (
-        <p>Loading...</p>
+        <Spinner />
       ) : (
         <DataTable
           columns={[

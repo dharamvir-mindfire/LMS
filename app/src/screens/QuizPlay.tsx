@@ -3,6 +3,7 @@ import {ScrollView, StyleSheet, Text, View} from 'react-native';
 import type {NativeStackScreenProps} from '@react-navigation/native-stack';
 import type {RootStackParamList} from '../navigation/RootNavigator';
 import client, {extractErrorMessage} from '../api/client';
+import Loader from '../components/Loader';
 import QuestionCard from '../components/QuestionCard';
 import colors from '../theme/colors';
 import type {Question, QuizResultQuestion} from '../types';
@@ -61,7 +62,7 @@ export default function QuizPlay({route}: Props) {
   if (loading) {
     return (
       <View style={styles.container}>
-        <Text style={styles.muted}>Loading...</Text>
+        <Loader label="Starting quiz..." />
       </View>
     );
   }

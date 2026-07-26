@@ -6,6 +6,7 @@ import * as CourseService from '../api/CourseService';
 import { apiErrorMessage } from '../api/client';
 import { DataTable } from '../components/DataTable';
 import { Modal } from '../components/Modal';
+import { Spinner } from '../components/Spinner';
 
 export function Subjects() {
   const [subjects, setSubjects] = useState<Subject[]>([]);
@@ -85,7 +86,7 @@ export function Subjects() {
       {courses.length === 0 && <p className="form-error">Create a course first.</p>}
       {error && <p className="form-error">{error}</p>}
       {loading ? (
-        <p>Loading...</p>
+        <Spinner />
       ) : (
         <DataTable
           columns={[

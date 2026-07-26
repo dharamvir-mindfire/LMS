@@ -8,6 +8,7 @@ import * as QuestionService from '../api/QuestionService';
 import { apiErrorMessage } from '../api/client';
 import { DataTable } from '../components/DataTable';
 import { Modal } from '../components/Modal';
+import { Spinner } from '../components/Spinner';
 
 function idOf(value: { _id: string } | string): string {
   return typeof value === 'string' ? value : value._id;
@@ -150,7 +151,7 @@ export function Quizzes() {
 
       {error && <p className="form-error">{error}</p>}
       {loading ? (
-        <p>Loading...</p>
+        <Spinner />
       ) : (
         <DataTable
           columns={[
