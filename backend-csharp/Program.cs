@@ -135,13 +135,15 @@ builder.Services.AddCors(options =>
 
 var app = builder.Build();
 
-if (app.Environment.IsDevelopment())
-{
-    app.MapOpenApi();
-}
+// Served under /api because Azure Static Web Apps' linked-backend proxy only
+// ever forwards /api/* to this App Service — frontend/public/staticwebapp.config.json
+// rewrites the friendly /swagger/* URLs down to these routes so the address
+// bar can stay prefix-free.
+app.MapOpenApi("/api/openapi/{documentName}.json");
 app.UseSwaggerUI(options =>
 {
-    options.SwaggerEndpoint("/openapi/v1.json", "LMS API v1");
+    options.SwaggerEndpoint("/api/openapi/v1.json", "LMS API v1");
+    options.RoutePrefix = "api/swagger";
 });
 
 // Mirrors middleware/ErrorHandler.ts's `errorHandler`: any unhandled
