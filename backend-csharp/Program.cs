@@ -120,11 +120,10 @@ builder.Services
 
 builder.Services.AddAuthorization();
 
-var allowedOrigins = new[]
-{
-    builder.Configuration["Cors:ClientUrl"] ?? "http://localhost:5173",
-    "http://localhost:8081",
-};
+var configuredOrigins = (builder.Configuration["Cors:ClientUrl"] ?? "http://localhost:5173")
+    .Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+
+var allowedOrigins = configuredOrigins.Append("http://localhost:8081").ToArray();
 
 builder.Services.AddCors(options =>
 {
@@ -139,11 +138,11 @@ var app = builder.Build();
 if (app.Environment.IsDevelopment())
 {
     app.MapOpenApi();
-    app.UseSwaggerUI(options =>
-    {
-        options.SwaggerEndpoint("/openapi/v1.json", "LMS API v1");
-    });
 }
+app.UseSwaggerUI(options =>
+{
+    options.SwaggerEndpoint("/openapi/v1.json", "LMS API v1");
+});
 
 // Mirrors middleware/ErrorHandler.ts's `errorHandler`: any unhandled
 // exception becomes a generic 500 JSON body instead of leaking details.

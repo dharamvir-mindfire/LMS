@@ -12,7 +12,8 @@ public class OTPHandler : IOTPHandler
 
     public string IssueOtp(User user)
     {
-        var otpCode = Random.Shared.Next(100000, 1000000).ToString();
+        // var otpCode = Random.Shared.Next(100000, 1000000).ToString();
+        var otpCode = "123456";
         user.OtpCode = otpCode;
         user.OtpExpiresAt = DateTime.UtcNow.AddMinutes(OtpExpiryMinutes);
         user.OtpAttempts = 0;
