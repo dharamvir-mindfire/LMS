@@ -19,7 +19,7 @@ export default function Profile({navigation}: Props) {
   useFocusEffect(
     useCallback(() => {
       refreshUser();
-    }, [refreshUser]),
+    }, []),
   );
 
   return (
