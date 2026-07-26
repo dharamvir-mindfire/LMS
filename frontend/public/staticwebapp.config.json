@@ -2,14 +2,7 @@
   "routes": [
     { "route": "/swagger", "redirect": "/swagger/", "statusCode": 301 },
     { "route": "/swagger/", "rewrite": "/api/swagger/index.html" },
-    { "route": "/swagger/index.html", "rewrite": "/api/swagger/index.html" },
-    { "route": "/swagger/index.js", "rewrite": "/api/swagger/index.js" },
-    { "route": "/swagger/index.css", "rewrite": "/api/swagger/index.css" },
-    { "route": "/swagger/swagger-ui.css", "rewrite": "/api/swagger/swagger-ui.css" },
-    { "route": "/swagger/swagger-ui-bundle.js", "rewrite": "/api/swagger/swagger-ui-bundle.js" },
-    { "route": "/swagger/swagger-ui-standalone-preset.js", "rewrite": "/api/swagger/swagger-ui-standalone-preset.js" },
-    { "route": "/swagger/favicon-32x32.png", "rewrite": "/api/swagger/favicon-32x32.png" },
-    { "route": "/swagger/favicon-16x16.png", "rewrite": "/api/swagger/favicon-16x16.png" }
+    { "route": "/swagger/index.html", "rewrite": "/api/swagger/index.html" }
   ],
   "navigationFallback": {
     "rewrite": "/index.html",
