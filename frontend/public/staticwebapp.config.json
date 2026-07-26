@@ -1,9 +1,4 @@
 {
-  "routes": [
-    { "route": "/swagger", "redirect": "/swagger/", "statusCode": 301 },
-    { "route": "/swagger/", "rewrite": "/api/swagger/index.html" },
-    { "route": "/swagger/index.html", "rewrite": "/api/swagger/index.html" }
-  ],
   "navigationFallback": {
     "rewrite": "/index.html",
     "exclude": ["/assets/*"]
