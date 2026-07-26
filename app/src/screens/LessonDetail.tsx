@@ -1,5 +1,6 @@
 import {useEffect, useState} from 'react';
 import {Alert, Linking, Pressable, ScrollView, StyleSheet, Text, View} from 'react-native';
+import {useVideoPlayer, VideoView} from 'expo-video';
 import type {NativeStackScreenProps} from '@react-navigation/native-stack';
 import type {CoursesStackParamList} from '../navigation/CoursesStack';
 import {extractErrorMessage} from '../api/client';
@@ -14,11 +15,20 @@ function openLink(url: string) {
   Linking.openURL(url).catch(() => Alert.alert('Could not open link', url));
 }
 
-export default function LessonDetail({route}: Props) {
+export default function LessonDetail({route, navigation}: Props) {
   const {lessonId} = route.params;
   const [lesson, setLesson] = useState<Lesson | null>(null);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(true);
+
+  const player = useVideoPlayer(lesson?.videoUrl || null, playerInstance => {
+    playerInstance.loop = false;
+  });
+
+  useEffect(() => {
+    const unsubscribe = navigation.addListener('blur', () => player.pause());
+    return unsubscribe;
+  }, [navigation, player]);
 
   useEffect(() => {
     getLesson(lessonId)
@@ -46,9 +56,12 @@ export default function LessonDetail({route}: Props) {
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.content}>
       {lesson.videoUrl ? (
-        <Pressable style={styles.videoButton} onPress={() => openLink(lesson.videoUrl)}>
-          <Text style={styles.videoButtonText}>Watch video</Text>
-        </Pressable>
+        <View style={styles.videoSection}>
+          <VideoView style={styles.video} player={player} allowsFullscreen allowsPictureInPicture contentFit="contain" />
+          <Pressable onPress={() => openLink(lesson.videoUrl)}>
+            <Text style={styles.openExternalLink}>Open video in browser</Text>
+          </Pressable>
+        </View>
       ) : null}
 
       {lesson.content ? <Text style={styles.body}>{lesson.content}</Text> : null}
@@ -60,7 +73,7 @@ export default function LessonDetail({route}: Props) {
             <Pressable
               key={material.url}
               style={styles.materialCard}
-              onPress={() => openLink(material.url)}>
+              onPress={() => navigation.navigate('MaterialViewer', {url: material.url, title: material.title})}>
               <Text style={styles.materialTitle}>{material.title}</Text>
             </Pressable>
           ))}
@@ -75,13 +88,14 @@ const styles = StyleSheet.create({
   content: {gap: 16, paddingBottom: 25},
   error: {color: colors.danger},
   body: {color: colors.text, fontSize: 15, lineHeight: 22},
-  videoButton: {
-    backgroundColor: colors.purple,
+  videoSection: {gap: 8},
+  video: {
+    width: '100%',
+    aspectRatio: 16 / 9,
     borderRadius: 8,
-    padding: 14,
-    alignItems: 'center',
+    backgroundColor: colors.surface,
   },
-  videoButtonText: {color: colors.white, fontWeight: '600'},
+  openExternalLink: {color: colors.purple, fontWeight: '600', textAlign: 'center'},
   materialsSection: {gap: 10},
   sectionTitle: {color: colors.text, fontSize: 16, fontWeight: '600'},
   materialCard: {

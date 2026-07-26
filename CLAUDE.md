@@ -165,7 +165,8 @@ RootNavigator   (Login ⇄ MainTabs, gated by AuthContext; loading spinner while
 │  │  ├─ Courses.tsx        — browse courses
 │  │  ├─ CourseSubjects.tsx  — subjects within a course
 │  │  ├─ SubjectDetail.tsx    — Lessons/Quizzes top tabs for this subject, lists rendered inline
-│  │  └─ LessonDetail.tsx      — lesson content, video link, material links (opened via Linking)
+│  │  ├─ LessonDetail.tsx      — lesson content, inline video player, material list
+│  │  └─ MaterialViewer.tsx     — in-app document viewer for a material link
 │  └─ ProfileStack
 │     ├─ Profile.tsx         — user info, client-side achievements list, logout
 │     ├─ Settings.tsx         — edit name
@@ -173,7 +174,7 @@ RootNavigator   (Login ⇄ MainTabs, gated by AuthContext; loading spinner while
 └─ QuizPlay.tsx        — pushed at the root-navigator level (sibling of MainTabs, not nested in a tab)
 ```
 
-There is no dedicated Quizzes tab or results screen. A quiz can be opened from either `Home`/`AllQuizzes` or by drilling into `Courses → CourseSubjects → SubjectDetail`'s Quizzes tab; either path pushes `QuizPlay` on the root stack, which runs the question flow and then renders the graded per-question breakdown inline in the same screen once submitted. Lessons are reached via `SubjectDetail`'s Lessons tab → `LessonDetail`; a lesson's video and materials are external links opened with `Linking.openURL`, not played/rendered in-app. `SubjectDetail` itself is a single screen with a custom top-tab bar (Lessons/Quizzes) switching which list renders below — not a `@react-navigation` tab navigator, to avoid adding a new nav dependency for two tabs.
+There is no dedicated Quizzes tab or results screen. A quiz can be opened from either `Home`/`AllQuizzes` or by drilling into `Courses → CourseSubjects → SubjectDetail`'s Quizzes tab; either path pushes `QuizPlay` on the root stack, which runs the question flow and then renders the graded per-question breakdown inline in the same screen once submitted. Lessons are reached via `SubjectDetail`'s Lessons tab → `LessonDetail`, which plays the lesson's video inline with `expo-video` (`useVideoPlayer`/`VideoView`) and lists materials; tapping a material pushes `MaterialViewer`, which renders the linked document in-app via `react-native-webview` wrapped in Google's docs viewer (`docs.google.com/gview?embedded=true&url=...`), falling back to an "Open in browser" action if the in-app render fails. `SubjectDetail` itself is a single screen with a custom top-tab bar (Lessons/Quizzes) switching which list renders below — not a `@react-navigation` tab navigator, to avoid adding a new nav dependency for two tabs.
 
 ## Web admin
 

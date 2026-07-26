@@ -3,6 +3,7 @@ import Courses from '../screens/Courses';
 import CourseSubjects from '../screens/CourseSubjects';
 import SubjectDetail from '../screens/SubjectDetail';
 import LessonDetail from '../screens/LessonDetail';
+import MaterialViewer from '../screens/MaterialViewer';
 import {statusBarScreenOptions, withSafeArea} from '../theme/navigation';
 
 export type CoursesStackParamList = {
@@ -10,6 +11,7 @@ export type CoursesStackParamList = {
   CourseSubjects: {courseId: string; courseTitle: string};
   SubjectDetail: {subjectId: string; subjectName: string};
   LessonDetail: {lessonId: string; lessonTitle: string};
+  MaterialViewer: {url: string; title: string};
 };
 
 const Stack = createNativeStackNavigator<CoursesStackParamList>();
@@ -36,6 +38,11 @@ export default function CoursesStack() {
         name="LessonDetail"
         component={LessonDetail}
         options={({route}) => ({title: route.params.lessonTitle})}
+      />
+      <Stack.Screen
+        name="MaterialViewer"
+        component={MaterialViewer}
+        options={({route}) => ({title: route.params.title})}
       />
     </Stack.Navigator>
   );
