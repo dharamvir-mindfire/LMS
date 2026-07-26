@@ -9,7 +9,7 @@ on:
   workflow_dispatch: {}
 
 env:
-  AZURE_WEBAPP_NAME: lms-d
+  AZURE_WEBAPP_NAME: lms-d-backend
   DOTNET_VERSION: "10.0.x"
 
 jobs:
