@@ -2,34 +2,28 @@ import {useEffect, useState} from 'react';
 import {ScrollView, StyleSheet, Text, View} from 'react-native';
 import type {NativeStackScreenProps} from '@react-navigation/native-stack';
 import type {RootStackParamList} from '../navigation/RootNavigator';
-import client, {extractErrorMessage} from '../api/client';
+import {extractErrorMessage} from '../api/client';
+import {startQuiz, submitQuiz} from '../api/quizzesService';
+import type {QuizSubmitResult} from '../api/quizzesService';
 import Loader from '../components/Loader';
 import QuestionCard from '../components/QuestionCard';
 import colors from '../theme/colors';
-import type {Question, QuizResultQuestion} from '../types';
+import type {Question} from '../types';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'QuizPlay'>;
-
-interface QuizResult {
-  score: number;
-  total: number;
-  correctCount: number;
-  results: QuizResultQuestion[];
-}
 
 export default function QuizPlay({route}: Props) {
   const {quizId} = route.params;
   const [questions, setQuestions] = useState<Question[]>([]);
   const [answers, setAnswers] = useState<Record<string, number>>({});
-  const [result, setResult] = useState<QuizResult | null>(null);
+  const [result, setResult] = useState<QuizSubmitResult | null>(null);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
 
   useEffect(() => {
-    client
-      .post(`/quizzes/${quizId}/start`)
-      .then(res => setQuestions(res.data.quiz.questions))
+    startQuiz(quizId)
+      .then(quiz => setQuestions(quiz.questions))
       .catch(err => setError(extractErrorMessage(err, 'Failed to start quiz')))
       .finally(() => setLoading(false));
   }, [quizId]);
@@ -42,16 +36,13 @@ export default function QuizPlay({route}: Props) {
     setSubmitting(true);
     setError('');
     try {
-      const payload = {
-        answers: Object.entries(answers).map(
-          ([question, selectedOptionIndex]) => ({
-            question,
-            selectedOptionIndex,
-          }),
-        ),
-      };
-      const res = await client.post(`/quizzes/${quizId}/submit`, payload);
-      setResult(res.data);
+      const submitAnswers = Object.entries(answers).map(
+        ([question, selectedOptionIndex]) => ({
+          question,
+          selectedOptionIndex,
+        }),
+      );
+      setResult(await submitQuiz(quizId, submitAnswers));
     } catch (err) {
       setError(extractErrorMessage(err, 'Failed to submit quiz'));
     } finally {
@@ -143,7 +134,7 @@ const styles = StyleSheet.create({
   error: {color: colors.danger},
   resultText: {color: colors.text, fontSize: 18, marginBottom: 8},
   submit: {
-    color: '#fff',
+    color: colors.white,
     backgroundColor: colors.purple,
     borderRadius: 8,
     padding: 14,
@@ -175,11 +166,11 @@ const styles = StyleSheet.create({
   },
   resultOptionCorrect: {
     borderColor: colors.success,
-    backgroundColor: '#1c3a2a',
+    backgroundColor: colors.successMuted,
   },
   resultOptionIncorrect: {
     borderColor: colors.danger,
-    backgroundColor: '#3a1c1c',
+    backgroundColor: colors.dangerMuted,
   },
   resultOptionText: {
     color: colors.text,

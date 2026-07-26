@@ -145,32 +145,27 @@ Field names shown are the subset relevant to the plan — see `API/src/models/` 
 
 ## Mobile app
 
-React Native bare CLI. React Context for auth state (no Redux); a single axios instance injects the JWT.
+React Native + Expo, managed workflow (Expo CLI) — no committed native `android/`/`ios/` projects; Expo generates them on demand via `expo prebuild` only if native code is ever needed. React Context for auth state (no Redux); a single axios instance injects the JWT. See `.claude/app/SKILL.md` for the full house-style conventions this follows.
 
 ```
-RootNavigator   (auth stack ⇄ main tabs, gated by AuthContext)
-├─ Welcome.tsx        — email/phone/social entry points
-├─ EmailLogin.tsx
-├─ PhoneLogin.tsx      — sends OTP, hands off to verify
-├─ Register.tsx
-└─ MainTabs
-   ├─ HomeStack
-   │  ├─ Home.tsx        — dashboard: streak, quick actions
-   │  └─ Courses.tsx      — browse courses
-   ├─ QuizzesStack
-   │  ├─ Quizzes.tsx       — list of /quizzes/available
-   │  ├─ QuizPlay.tsx       — timed question runner
-   │  └─ QuizResults.tsx     — per-question breakdown
-   └─ ProfileStack
-      ├─ Profile.tsx
-      ├─ Settings.tsx
-      ├─ Achievements.tsx    — computed client-side, see gaps
-      └─ Statistics.tsx
+RootNavigator   (Login ⇄ MainTabs, gated by AuthContext; loading spinner while the token is checked)
+├─ Login.tsx           — single screen, two modes: email+password, and email-based OTP request/verify
+├─ MainTabs
+│  ├─ HomeStack
+│  │  ├─ Home.tsx          — dashboard: quiz preview list + stats, links into AllQuizzes
+│  │  └─ AllQuizzes.tsx     — full list of available quizzes
+│  ├─ CoursesStack
+│  │  ├─ Courses.tsx        — browse courses
+│  │  ├─ CourseSubjects.tsx  — subjects within a course
+│  │  └─ SubjectQuizzes.tsx   — quizzes scoped to a subject
+│  └─ ProfileStack
+│     ├─ Profile.tsx         — user info, client-side achievements list, logout
+│     ├─ Settings.tsx         — edit name
+│     └─ ChangePassword.tsx    — set/change password
+└─ QuizPlay.tsx        — pushed at the root-navigator level (sibling of MainTabs, not nested in a tab)
 ```
 
-The Quizzes tab is the primary graded loop: pick a quiz from `/quizzes/available`, run it timed against `QuizPlay`, land on `QuizResults` for the per-question breakdown.
-
-**Nav types:** `MainTabParamList` gains a `Quizzes` entry pointing at the new `QuizzesStack`; `HomeStackParamList` loses `Quizzes`/`QuizPlay`/`QuizResults` to that new `QuizzesStackParamList`.
+There is no dedicated Quizzes tab or results screen. A quiz can be opened from either `Home`/`AllQuizzes` or by drilling into `Courses → CourseSubjects → SubjectQuizzes`; either path pushes `QuizPlay` on the root stack, which runs the timed question flow and then renders the graded per-question breakdown inline in the same screen once submitted.
 
 ## Web admin
 
@@ -191,8 +186,7 @@ Ten concrete observations from reading the code, not speculation — these are w
 
 **Blocks a real user flow:**
 
-- **Phone OTP has no SMS provider wired up.** The code is generated and hashed correctly, but it's only ever `console.log`'d — no Twilio/MSG91/etc. integration. Phone login can't work for a real user off your dev machine. (`API/src/controllers/AuthController.ts:91`)
-- **Social sign-in buttons exist with no backend.** The Welcome screen offers Google/Apple sign-in; tapping either just shows a "coming soon" alert. No OAuth flow exists on the API side yet. (`App/src/screens/Welcome.tsx`)
+- **Email OTP has no mail provider wired up.** The code is generated and hashed correctly, but it's only ever `console.log`'d — no SendGrid/SES/etc. integration. OTP login can't work for a real user off your dev machine. (`API/src/controllers/AuthController.ts:112`)
 
 **Works but incomplete:**
 

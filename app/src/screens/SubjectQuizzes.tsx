@@ -3,7 +3,8 @@ import {FlatList, Pressable, StyleSheet, Text, View} from 'react-native';
 import type {NativeStackScreenProps} from '@react-navigation/native-stack';
 import type {CoursesStackParamList} from '../navigation/CoursesStack';
 import {navigationRef} from '../navigation/navigationRef';
-import client, {extractErrorMessage} from '../api/client';
+import {extractErrorMessage} from '../api/client';
+import {getQuizzes} from '../api/quizzesService';
 import Loader from '../components/Loader';
 import colors from '../theme/colors';
 import type {QuizListItem} from '../types';
@@ -17,9 +18,8 @@ export default function SubjectQuizzes({route}: Props) {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    client
-      .get('/quizzes', {params: {subject: subjectId}})
-      .then(res => setQuizzes(res.data.quizzes))
+    getQuizzes(subjectId)
+      .then(setQuizzes)
       .catch(err => setError(extractErrorMessage(err, 'Failed to load quizzes')))
       .finally(() => setLoading(false));
   }, [subjectId]);

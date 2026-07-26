@@ -7,8 +7,11 @@ const colors = {
   text: '#e7e9ee',
   textMuted: '#9aa0ac',
   success: '#4ade80',
+  successMuted: '#1c3a2a',
   warning: '#fbbf24',
   danger: '#f87171',
+  dangerMuted: '#3a1c1c',
+  white: '#fff',
 };
 
 export default colors;

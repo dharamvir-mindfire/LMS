@@ -2,7 +2,8 @@ import {useEffect, useState} from 'react';
 import {FlatList, Pressable, StyleSheet, Text, View} from 'react-native';
 import type {NativeStackScreenProps} from '@react-navigation/native-stack';
 import type {CoursesStackParamList} from '../navigation/CoursesStack';
-import client, {extractErrorMessage} from '../api/client';
+import {extractErrorMessage} from '../api/client';
+import {getSubjects} from '../api/subjectsService';
 import Loader from '../components/Loader';
 import colors from '../theme/colors';
 import type {Subject} from '../types';
@@ -16,9 +17,8 @@ export default function CourseSubjects({route, navigation}: Props) {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    client
-      .get('/subjects', {params: {course: courseId}})
-      .then(res => setSubjects(res.data.subjects))
+    getSubjects(courseId)
+      .then(setSubjects)
       .catch(err => setError(extractErrorMessage(err, 'Failed to load subjects')))
       .finally(() => setLoading(false));
   }, [courseId]);

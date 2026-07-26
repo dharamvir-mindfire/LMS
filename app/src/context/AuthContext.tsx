@@ -1,7 +1,8 @@
 import {createContext, useContext, useEffect, useMemo, useState} from 'react';
 import type {ReactNode} from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import client, {TOKEN_KEY} from '../api/client';
+import {TOKEN_KEY} from '../api/client';
+import * as authService from '../api/authService';
 import type {User} from '../types';
 
 interface AuthContextValue {
@@ -24,8 +25,7 @@ export function AuthProvider({children}: {children: ReactNode}) {
 
   async function refreshUser() {
     try {
-      const res = await client.get('/auth/me');
-      setUser(res.data.user);
+      setUser(await authService.getMe());
     } catch {
       // ignore — keep whatever user state is currently in memory
     }
@@ -38,8 +38,7 @@ export function AuthProvider({children}: {children: ReactNode}) {
         return;
       }
       try {
-        const res = await client.get('/auth/me');
-        setUser(res.data.user);
+        setUser(await authService.getMe());
       } catch {
         await AsyncStorage.removeItem(TOKEN_KEY);
       } finally {
@@ -49,33 +48,33 @@ export function AuthProvider({children}: {children: ReactNode}) {
   }, []);
 
   async function login(email: string, password: string) {
-    const res = await client.post('/auth/login', {email, password});
-    await AsyncStorage.setItem(TOKEN_KEY, res.data.token);
-    setUser(res.data.user);
-    return res.data.user as User;
+    const {token, user: loggedInUser} = await authService.login(email, password);
+    await AsyncStorage.setItem(TOKEN_KEY, token);
+    setUser(loggedInUser);
+    return loggedInUser;
   }
 
   async function sendOtp(email: string) {
-    await client.post('/auth/send-otp', {email});
+    await authService.sendOtp(email);
   }
 
   async function loginWithOtp(email: string, otp: string) {
-    const res = await client.post('/auth/verify-otp', {email, otp});
-    await AsyncStorage.setItem(TOKEN_KEY, res.data.token);
-    setUser(res.data.user);
-    return res.data.user as User;
+    const {token, user: loggedInUser} = await authService.verifyOtp(email, otp);
+    await AsyncStorage.setItem(TOKEN_KEY, token);
+    setUser(loggedInUser);
+    return loggedInUser;
   }
 
   async function updateProfile(name: string) {
-    const res = await client.patch('/auth/profile', {name});
-    setUser(res.data.user);
-    return res.data.user as User;
+    const updatedUser = await authService.updateProfile(name);
+    setUser(updatedUser);
+    return updatedUser;
   }
 
   async function updatePassword(newPassword: string, currentPassword?: string) {
-    const res = await client.put('/auth/password', {newPassword, currentPassword});
-    setUser(res.data.user);
-    return res.data.user as User;
+    const updatedUser = await authService.updatePassword(newPassword, currentPassword);
+    setUser(updatedUser);
+    return updatedUser;
   }
 
   async function logout() {

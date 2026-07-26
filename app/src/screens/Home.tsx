@@ -4,7 +4,9 @@ import {useFocusEffect} from '@react-navigation/native';
 import type {NativeStackScreenProps} from '@react-navigation/native-stack';
 import type {HomeStackParamList} from '../navigation/HomeStack';
 import {navigationRef} from '../navigation/navigationRef';
-import client, {extractErrorMessage} from '../api/client';
+import {extractErrorMessage} from '../api/client';
+import {getQuizzes} from '../api/quizzesService';
+import {getHomeStats} from '../api/homeService';
 import Loader from '../components/Loader';
 import colors from '../theme/colors';
 import type {HomeStats, QuizListItem} from '../types';
@@ -22,10 +24,10 @@ export default function Home({navigation}: Props) {
   useFocusEffect(
     useCallback(() => {
       setLoading(true);
-      Promise.all([client.get('/quizzes'), client.get('/home/stats')])
-        .then(([quizzesRes, statsRes]) => {
-          setQuizzes(quizzesRes.data.quizzes);
-          setStats(statsRes.data.stats);
+      Promise.all([getQuizzes(), getHomeStats()])
+        .then(([allQuizzes, homeStats]) => {
+          setQuizzes(allQuizzes);
+          setStats(homeStats);
         })
         .catch(err =>
           setError(extractErrorMessage(err, 'Failed to load home data')),

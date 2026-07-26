@@ -126,5 +126,5 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginTop: 16,
   },
-  logoutText: {color: '#fff', fontWeight: '600'},
+  logoutText: {color: colors.white, fontWeight: '600'},
 });

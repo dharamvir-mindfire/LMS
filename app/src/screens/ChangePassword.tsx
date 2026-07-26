@@ -87,5 +87,5 @@ const styles = StyleSheet.create({
     padding: 14,
     alignItems: 'center',
   },
-  buttonText: {color: '#fff', fontWeight: '600'},
+  buttonText: {color: colors.white, fontWeight: '600'},
 });

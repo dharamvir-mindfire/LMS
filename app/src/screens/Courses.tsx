@@ -3,7 +3,8 @@ import {FlatList, Pressable, StyleSheet, Text, View} from 'react-native';
 import {useFocusEffect} from '@react-navigation/native';
 import type {NativeStackScreenProps} from '@react-navigation/native-stack';
 import type {CoursesStackParamList} from '../navigation/CoursesStack';
-import client, {extractErrorMessage} from '../api/client';
+import {extractErrorMessage} from '../api/client';
+import {getCourses} from '../api/coursesService';
 import Loader from '../components/Loader';
 import colors from '../theme/colors';
 import type {Course} from '../types';
@@ -18,9 +19,8 @@ export default function Courses({navigation}: Props) {
   useFocusEffect(
     useCallback(() => {
       setLoading(true);
-      client
-        .get('/courses')
-        .then(res => setCourses(res.data.courses))
+      getCourses()
+        .then(setCourses)
         .catch(err => setError(extractErrorMessage(err, 'Failed to load courses')))
         .finally(() => setLoading(false));
     }, []),
