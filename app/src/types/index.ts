@@ -12,6 +12,7 @@ export interface User {
 export interface HomeStats {
   courses: number;
   subjects: number;
+  lessons: number;
   quizzes: number;
   questionsAnswered: number;
 }
@@ -68,4 +69,24 @@ export interface QuizResultQuestion {
   selectedOptionIndex: number;
   explanation: string;
   isCorrect: boolean;
+}
+
+export interface LessonMaterial {
+  title: string;
+  url: string;
+}
+
+// Shape returned by GET /lessons
+export interface LessonListItem {
+  _id: string;
+  subject: SubjectSummary;
+  title: string;
+  order: number;
+}
+
+// Shape returned by GET /lessons/:id
+export interface Lesson extends LessonListItem {
+  content: string;
+  videoUrl: string;
+  materials: LessonMaterial[];
 }

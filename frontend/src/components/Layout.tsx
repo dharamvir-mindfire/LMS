@@ -5,6 +5,7 @@ const links = [
   { to: '/courses', label: 'Courses' },
   { to: '/subjects', label: 'Subjects' },
   { to: '/questions', label: 'Questions' },
+  { to: '/lessons', label: 'Lessons' },
   { to: '/quizzes', label: 'Quizzes' },
   { to: '/users', label: 'Users' },
 ];

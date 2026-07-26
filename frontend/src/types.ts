@@ -34,6 +34,21 @@ export interface Question {
   explanation?: string;
 }
 
+export interface LessonMaterial {
+  title: string;
+  url: string;
+}
+
+export interface Lesson {
+  _id: string;
+  subject: { _id: string; name: string; slug: string } | string;
+  title: string;
+  content?: string;
+  videoUrl?: string;
+  materials: LessonMaterial[];
+  order: number;
+}
+
 export interface Quiz {
   _id: string;
   title: string;

@@ -35,7 +35,7 @@ export default function CourseSubjects({route, navigation}: Props) {
           renderItem={({item}) => (
             <Pressable
               style={styles.card}
-              onPress={() => navigation.navigate('SubjectQuizzes', {subjectId: item._id, subjectName: item.name})}>
+              onPress={() => navigation.navigate('SubjectDetail', {subjectId: item._id, subjectName: item.name})}>
               <Text style={styles.cardTitle}>{item.name}</Text>
               {item.description ? <Text style={styles.muted}>{item.description}</Text> : null}
             </Pressable>

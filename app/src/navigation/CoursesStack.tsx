@@ -1,13 +1,15 @@
 import {createNativeStackNavigator} from '@react-navigation/native-stack';
 import Courses from '../screens/Courses';
 import CourseSubjects from '../screens/CourseSubjects';
-import SubjectQuizzes from '../screens/SubjectQuizzes';
+import SubjectDetail from '../screens/SubjectDetail';
+import LessonDetail from '../screens/LessonDetail';
 import {statusBarScreenOptions, withSafeArea} from '../theme/navigation';
 
 export type CoursesStackParamList = {
   Courses: undefined;
   CourseSubjects: {courseId: string; courseTitle: string};
-  SubjectQuizzes: {subjectId: string; subjectName: string};
+  SubjectDetail: {subjectId: string; subjectName: string};
+  LessonDetail: {lessonId: string; lessonTitle: string};
 };
 
 const Stack = createNativeStackNavigator<CoursesStackParamList>();
@@ -26,9 +28,14 @@ export default function CoursesStack() {
         options={({route}) => ({title: route.params.courseTitle})}
       />
       <Stack.Screen
-        name="SubjectQuizzes"
-        component={SubjectQuizzes}
+        name="SubjectDetail"
+        component={SubjectDetail}
         options={({route}) => ({title: route.params.subjectName})}
+      />
+      <Stack.Screen
+        name="LessonDetail"
+        component={LessonDetail}
+        options={({route}) => ({title: route.params.lessonTitle})}
       />
     </Stack.Navigator>
   );

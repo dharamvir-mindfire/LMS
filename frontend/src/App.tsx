@@ -6,6 +6,7 @@ import { Login } from './pages/Login';
 import { Courses } from './pages/Courses';
 import { Subjects } from './pages/Subjects';
 import { Questions } from './pages/Questions';
+import { Lessons } from './pages/Lessons';
 import { Quizzes } from './pages/Quizzes';
 import { Users } from './pages/Users';
 
@@ -26,6 +27,7 @@ export function App() {
           <Route path="/courses" element={<Courses />} />
           <Route path="/subjects" element={<Subjects />} />
           <Route path="/questions" element={<Questions />} />
+          <Route path="/lessons" element={<Lessons />} />
           <Route path="/quizzes" element={<Quizzes />} />
           <Route path="/users" element={<Users />} />
         </Route>

@@ -2,7 +2,9 @@ import {useCallback, useState} from 'react';
 import {FlatList, Pressable, StyleSheet, Text, View} from 'react-native';
 import {useFocusEffect} from '@react-navigation/native';
 import type {NativeStackScreenProps} from '@react-navigation/native-stack';
+import type {BottomTabNavigationProp} from '@react-navigation/bottom-tabs';
 import type {HomeStackParamList} from '../navigation/HomeStack';
+import type {MainTabParamList} from '../navigation/MainTabs';
 import {navigationRef} from '../navigation/navigationRef';
 import {extractErrorMessage} from '../api/client';
 import {getQuizzes} from '../api/quizzesService';
@@ -43,6 +45,10 @@ export default function Home({navigation}: Props) {
     });
   }
 
+  function goToTab(tab: 'Courses' | 'Profile') {
+    navigation.getParent<BottomTabNavigationProp<MainTabParamList>>()?.navigate(tab);
+  }
+
   return (
     <View style={styles.container}>
       {error ? <Text style={styles.error}>{error}</Text> : null}
@@ -53,22 +59,26 @@ export default function Home({navigation}: Props) {
           <Text style={styles.title}>Welcome to the LMS App!</Text>
           {stats && (
             <View style={styles.statsRow}>
-              <View style={styles.statCard}>
+              <Pressable style={styles.statCard} onPress={() => goToTab('Profile')}>
                 <Text style={styles.statValue}>{stats.questionsAnswered}</Text>
                 <Text style={styles.statLabel}>Questions Answered</Text>
-              </View>
-              <View style={styles.statCard}>
+              </Pressable>
+              <Pressable style={styles.statCard} onPress={() => navigation.navigate('AllQuizzes')}>
                 <Text style={styles.statValue}>{stats.quizzes}</Text>
                 <Text style={styles.statLabel}>Quizzes</Text>
-              </View>
-              <View style={styles.statCard}>
+              </Pressable>
+              <Pressable style={styles.statCard} onPress={() => goToTab('Courses')}>
+                <Text style={styles.statValue}>{stats.lessons}</Text>
+                <Text style={styles.statLabel}>Lessons</Text>
+              </Pressable>
+              <Pressable style={styles.statCard} onPress={() => goToTab('Courses')}>
                 <Text style={styles.statValue}>{stats.subjects}</Text>
                 <Text style={styles.statLabel}>Subjects</Text>
-              </View>
-              <View style={styles.statCard}>
+              </Pressable>
+              <Pressable style={styles.statCard} onPress={() => goToTab('Courses')}>
                 <Text style={styles.statValue}>{stats.courses}</Text>
                 <Text style={styles.statLabel}>Courses</Text>
-              </View>
+              </Pressable>
             </View>
           )}
 

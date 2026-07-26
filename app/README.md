@@ -5,7 +5,7 @@ React Native (Expo, managed workflow) client for the LMS quiz platform, talking 
 ## Setup
 
 ```
-cd App
+cd app
 npm install
 npx expo start
 ```
