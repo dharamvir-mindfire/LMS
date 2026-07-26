@@ -138,7 +138,8 @@ var app = builder.Build();
 app.MapOpenApi();
 app.UseSwaggerUI(options =>
 {
-    options.SwaggerEndpoint("/openapi/v1.json", "LMS API v1");
+    options.SwaggerEndpoint("/api/openapi/v1.json", "LMS API v1");
+    options.RoutePrefix = "api/swagger";
 });
 
 // Mirrors middleware/ErrorHandler.ts's `errorHandler`: any unhandled
