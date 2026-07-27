@@ -58,11 +58,6 @@ export function Login() {
             Login
           </button>
         </form>
-        <div className="mt-3">
-          <span className="text-muted">Username: admin@admin.com</span>
-          <br />
-          <span className="text-muted">Password: Admin@123</span>
-        </div>
       </div>
     </div>
   );
