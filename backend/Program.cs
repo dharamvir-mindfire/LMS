@@ -20,7 +20,9 @@ if (args.Length > 0 && args[0] is "seed:users" or "seed:questions" or "seed")
 {
     var seedBuilder = Host.CreateApplicationBuilder(args);
     seedBuilder.Services.AddDbContext<AppDbContext>(options =>
-        options.UseSqlServer(seedBuilder.Configuration.GetConnectionString("Default")));
+        options.UseSqlServer(
+            seedBuilder.Configuration.GetConnectionString("Default"),
+            sqlOptions => sqlOptions.EnableRetryOnFailure(maxRetryCount: 5, maxRetryDelay: TimeSpan.FromSeconds(30), errorNumbersToAdd: null)));
     using var seedHost = seedBuilder.Build();
     using var scope = seedHost.Services.CreateScope();
     var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
@@ -59,8 +61,14 @@ builder.Services.AddOpenApi(options =>
     options.AddOperationTransformer<BearerSecuritySchemeTransformer>();
 });
 
+// EnableRetryOnFailure guards against transient connectivity failures — most
+// notably an Azure SQL serverless database that's auto-paused and takes tens
+// of seconds to resume, which would otherwise surface as a broken connection
+// on the very first query after idling.
 builder.Services.AddDbContext<AppDbContext>(options =>
-    options.UseSqlServer(builder.Configuration.GetConnectionString("Default")));
+    options.UseSqlServer(
+        builder.Configuration.GetConnectionString("Default"),
+        sqlOptions => sqlOptions.EnableRetryOnFailure(maxRetryCount: 5, maxRetryDelay: TimeSpan.FromSeconds(30), errorNumbersToAdd: null)));
 
 builder.Services.AddScoped<ITokenHandler, LmsApi.Handlers.TokenHandler>();
 builder.Services.AddScoped<IOTPHandler, OTPHandler>();
@@ -136,10 +144,24 @@ builder.Services.AddCors(options =>
 
 var app = builder.Build();
 
+// A failed migration attempt must not crash the whole host — on a paused
+// Azure SQL serverless database (or any transient outage) this used to throw
+// here, before the app ever started listening, which IIS/ANCM surfaces as a
+// generic "HTTP 500.30 - ASP.NET Core app failed to start" with no server-side
+// trace. Log and continue instead: the retry-enabled DbContext above still
+// gets a chance to reach the database on the first real request.
 using (var scope = app.Services.CreateScope())
 {
     var dbContext = scope.ServiceProvider.GetRequiredService<AppDbContext>();
-    dbContext.Database.Migrate();
+    var startupLogger = scope.ServiceProvider.GetRequiredService<ILogger<Program>>();
+    try
+    {
+        dbContext.Database.Migrate();
+    }
+    catch (Exception ex)
+    {
+        startupLogger.LogError(ex, "Database migration failed at startup; continuing without blocking app startup.");
+    }
 }
 // Served under /api because Azure Static Web Apps' linked-backend proxy only
 // ever forwards /api/* to this App Service — frontend/public/staticwebapp.config.json
@@ -152,11 +174,21 @@ app.UseSwaggerUI(options =>
 });
 
 // Mirrors middleware/ErrorHandler.ts's `errorHandler`: any unhandled
-// exception becomes a generic 500 JSON body instead of leaking details.
+// exception becomes a generic 500 JSON body instead of leaking details. Also
+// logs the actual exception server-side — previously this handler swallowed
+// it entirely, so diagnosing a live incident meant live-tailing logs instead
+// of reading what had already been recorded.
 app.UseExceptionHandler(errorApp =>
 {
     errorApp.Run(async context =>
     {
+        var exception = context.Features.Get<Microsoft.AspNetCore.Diagnostics.IExceptionHandlerPathFeature>()?.Error;
+        if (exception != null)
+        {
+            var logger = context.RequestServices.GetRequiredService<ILogger<Program>>();
+            logger.LogError(exception, "Unhandled exception processing {Method} {Path}", context.Request.Method, context.Request.Path);
+        }
+
         context.Response.StatusCode = StatusCodes.Status500InternalServerError;
         context.Response.ContentType = "application/json";
         await context.Response.WriteAsJsonAsync(new { message = "Internal server error" });
@@ -165,7 +197,17 @@ app.UseExceptionHandler(errorApp =>
 
 app.UseCors();
 
-app.MapGet("/api/health", () => Results.Ok(new { status = "ok" }));
+// Actually checks DB connectivity rather than only confirming the process is
+// up — a paused/unreachable database previously left every real endpoint
+// broken while this kept returning a bare 200, giving no signal of the
+// degraded state.
+app.MapGet("/api/health", async (AppDbContext dbContext) =>
+{
+    var databaseConnected = await dbContext.Database.CanConnectAsync();
+    return databaseConnected
+        ? Results.Ok(new { status = "ok", database = "connected" })
+        : Results.Json(new { status = "degraded", database = "unreachable" }, statusCode: StatusCodes.Status503ServiceUnavailable);
+});
 
 app.UseAuthentication();
 app.UseAuthorization();
