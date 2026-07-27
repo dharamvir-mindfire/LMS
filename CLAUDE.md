@@ -205,6 +205,7 @@ Concrete observations from reading the code, not speculation — these are what 
 - **No admin dashboard or aggregate stats.** Web admin is seven CRUD list pages; there's no view of DAU, quiz completion rates, or which questions are too easy/hard. (`frontend/src/pages/`)
 - **No rate limiting on public auth routes.** `/login`, `/send-otp`, and `/verify-otp` are unauthenticated by design, but have no brute-force or spam throttling in front of them. (`backend/Program.cs`)
 - **Lesson videos/materials are only format-checked, not reachability-checked.** Create/update rejects a non-`http(s)` or malformed URL, but nothing checks the link actually resolves, is safe, or is really a video/document — `app/`'s `LessonDetail` screen finds out only when `Linking.openURL` fails at tap time.
+- **Production runs on a free/serverless tier combination that periodically sleeps.** The Azure App Service is F1 (no "Always On"), and the linked Azure SQL database is GeneralPurpose Serverless with a 60-minute auto-pause — both idle out independently. `Program.cs` now retries transient DB connection failures (`EnableRetryOnFailure`) and won't crash the host if the startup migration fails, and `/api/health` reports real DB connectivity — but a cold request after both have slept can still take several seconds while the database resumes. That's an infra-tier tradeoff, not a code bug; fixing it for good means Always On (needs a paid App Service tier) and/or disabling the database's auto-pause.
 
 **Low-risk / housekeeping:**
 
